@@ -117,14 +117,12 @@ var $go = function(fun, args, direct) {
   $totalGoroutines++;
   $awakeGoroutines++;
   var $goroutine = function() {
-    var rescheduled = false;
     try {
       $curGoroutine = $goroutine;
       var r = fun.apply(undefined, args);
       if (r && r.$blk !== undefined) {
         fun = function() { return r.$blk(); };
         args = [];
-        rescheduled = true;
         return;
       }
       $goroutine.exit = true;
@@ -133,11 +131,11 @@ var $go = function(fun, args, direct) {
       throw err;
     } finally {
       $curGoroutine = $dummyGoroutine;
-      if ($goroutine.exit && !rescheduled) { /* also set by runtime.Goexit() */
+      if ($goroutine.exit) { /* also set by runtime.Goexit() */
         $totalGoroutines--;
         $goroutine.asleep = true;
       }
-      if ($goroutine.asleep && !rescheduled) {
+      if ($goroutine.asleep) {
         $awakeGoroutines--;
         if ($awakeGoroutines === 0 && $totalGoroutines !== 0 && $checkForDeadlock) {
           console.error("fatal error: all goroutines are asleep - deadlock!");
