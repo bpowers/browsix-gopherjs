@@ -44,6 +44,10 @@ func (l *lexer) nextItem() item {
 	return item
 }
 
+func (l *lexer) drain() {
+	// nothing to drain
+}
+
 func lex(name, input, left, right string) *lexer {
 	if left == "" {
 		left = leftDelim
