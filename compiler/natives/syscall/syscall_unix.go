@@ -4,17 +4,35 @@ package syscall
 
 import (
 	"runtime"
+	"sync"
 	"unsafe"
 
 	"github.com/gopherjs/gopherjs/js"
 )
+
+type sysret struct {
+	r1, r2 uintptr
+	err Errno
+}
+
+var chans = sync.Pool{New: func() interface{} { return make(chan sysret) }}
 
 func runtime_envs() []string {
 	process := js.Global.Get("process")
 	if process == js.Undefined {
 		return nil
 	}
+
 	jsEnv := process.Get("env")
+	if jsEnv == nil {
+		ch := make(chan *js.Object, 0)
+		process.Call("once", "ready", func (r *js.Object) {
+			ch <- r
+		})
+		_ = <-ch
+		jsEnv = process.Get("env")
+	}
+
 	envkeys := js.Global.Get("Object").Call("keys", jsEnv)
 	envs := make([]string, envkeys.Length())
 	for i := 0; i < envkeys.Length(); i++ {
@@ -56,15 +74,14 @@ func syscall(name string) *js.Object {
 
 func Syscall(trap, a1, a2, a3 uintptr) (r1, r2 uintptr, err Errno) {
 	if f := syscall("Syscall"); f != nil {
-		r := f.Invoke(trap, a1, a2, a3)
-		return uintptr(r.Index(0).Int()), uintptr(r.Index(1).Int()), Errno(r.Index(2).Int())
-	}
-	if trap == SYS_WRITE && (a1 == 1 || a1 == 2) {
-		array := js.InternalObject(a2)
-		slice := make([]byte, array.Length())
-		js.InternalObject(slice).Set("$array", array)
-		printToConsole(slice)
-		return uintptr(array.Length()), 0, 0
+		ch := chans.Get().(chan sysret)
+		f.Invoke(func (r *js.Object) {
+			ch <- sysret{uintptr(r.Index(0).Int()), uintptr(r.Index(1).Int()), Errno(r.Index(2).Int())}
+		}, trap, a1, a2, a3)
+		result := <-ch
+		chans.Put(ch)
+		return result.r1, result.r2, result.err
+		// uintptr(r.Index(0).Int()), uintptr(r.Index(1).Int()), Errno(r.Index(2).Int())
 	}
 	if trap == SYS_EXIT {
 		runtime.Goexit()
@@ -75,8 +92,13 @@ func Syscall(trap, a1, a2, a3 uintptr) (r1, r2 uintptr, err Errno) {
 
 func Syscall6(trap, a1, a2, a3, a4, a5, a6 uintptr) (r1, r2 uintptr, err Errno) {
 	if f := syscall("Syscall6"); f != nil {
-		r := f.Invoke(trap, a1, a2, a3, a4, a5, a6)
-		return uintptr(r.Index(0).Int()), uintptr(r.Index(1).Int()), Errno(r.Index(2).Int())
+		ch := chans.Get().(chan sysret)
+		f.Invoke(func (r *js.Object) {
+			ch <- sysret{uintptr(r.Index(0).Int()), uintptr(r.Index(1).Int()), Errno(r.Index(2).Int())}
+		}, trap, a1, a2, a3, a4, a5, a6)
+		result := <-ch
+		chans.Put(ch)
+		return result.r1, result.r2, result.err
 	}
 	if trap != 202 { // kern.osrelease on OS X, happens in init of "os" package
 		printWarning()
@@ -85,21 +107,11 @@ func Syscall6(trap, a1, a2, a3, a4, a5, a6 uintptr) (r1, r2 uintptr, err Errno) 
 }
 
 func RawSyscall(trap, a1, a2, a3 uintptr) (r1, r2 uintptr, err Errno) {
-	if f := syscall("Syscall"); f != nil {
-		r := f.Invoke(trap, a1, a2, a3)
-		return uintptr(r.Index(0).Int()), uintptr(r.Index(1).Int()), Errno(r.Index(2).Int())
-	}
-	printWarning()
-	return uintptr(minusOne), 0, EACCES
+	return Syscall(trap, a1, a2, a3)
 }
 
 func RawSyscall6(trap, a1, a2, a3, a4, a5, a6 uintptr) (r1, r2 uintptr, err Errno) {
-	if f := syscall("Syscall6"); f != nil {
-		r := f.Invoke(trap, a1, a2, a3, a4, a5, a6)
-		return uintptr(r.Index(0).Int()), uintptr(r.Index(1).Int()), Errno(r.Index(2).Int())
-	}
-	printWarning()
-	return uintptr(minusOne), 0, EACCES
+	return Syscall6(trap, a1, a2, a3, a4, a5, a6)
 }
 
 func BytePtrFromString(s string) (*byte, error) {

@@ -1,14 +1,22 @@
 package prelude
 
-const Prelude = prelude + numeric + types + goroutines + jsmapping
+const Prelude = syscalls + prelude + numeric + types + goroutines + jsmapping
+
+//go:generate sh vendor-syscalls.bash
 
 const prelude = `Error.stackTraceLimit = Infinity;
 
 var $global, $module;
 if (typeof window !== "undefined") { /* web page */
   $global = window;
+  $global.require = require;
 } else if (typeof self !== "undefined") { /* web worker */
   $global = self;
+  $global.require = function(p) {
+    if (p === 'syscall')
+      return $global.$syscall;
+    console.log('WARNING: unknown module required: ' + p);
+  }
 } else if (typeof global !== "undefined") { /* Node.js */
   $global = global;
   $global.require = require;

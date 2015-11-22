@@ -9,12 +9,71 @@ import (
 	"github.com/gopherjs/gopherjs/js"
 )
 
+func runtime_pollServerInit() {
+}
+
+func runtime_pollOpen(fd uintptr) (uintptr, int) {
+	return 1, 0
+}
+
+func runtime_pollClose(ctx uintptr) {
+}
+
+func runtime_pollWait(ctx uintptr, mode int) int {
+	return 0
+}
+
+func runtime_pollWaitCanceled(ctx uintptr, mode int) int {
+	return 0
+}
+
+func runtime_pollReset(ctx uintptr, mode int) int {
+	return 0
+}
+
+func runtime_pollSetDeadline(ctx uintptr, d int64, mode int) {
+}
+
+func runtime_pollUnblock(ctx uintptr) {
+}
+
 func byteIndex(s string, c byte) int {
 	return js.InternalObject(s).Call("indexOf", js.Global.Get("String").Call("fromCharCode", c)).Int()
 }
 
+func listenBrowsix(net, laddr string) (Listener, error) {
+	// FIXME: currently only support stream sockets
+	family, sotype := syscall.AF_INET, syscall.SOCK_STREAM
+
+	addr, err := ResolveTCPAddr("tcp4", laddr)
+	addr.Port = 8080 // FIXME: :(
+	if err != nil {
+		return nil, err
+	}
+
+	s, err := syscall.Socket(family, sotype, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	fd, err := newFD(s, family, sotype, "tcp")
+	if err != nil {
+		return nil, err
+	}
+
+	if err = fd.listenStream(addr, 511); err != nil {
+		return nil, err
+	}
+
+	//if err = syscall.Listen(s, 511); err != nil {
+	//	return nil, err
+	//}
+
+	return &TCPListener{fd}, nil
+}
+
 func Listen(net, laddr string) (Listener, error) {
-	panic(errors.New("network access is not supported by GopherJS"))
+	return listenBrowsix(net, laddr)
 }
 
 func (d *Dialer) Dial(network, address string) (Conn, error) {

@@ -15,6 +15,10 @@ type Profile struct {
 	write func(io.Writer, int) error
 }
 
+func Profiles() []*Profile {
+	return []*Profile{} // nil
+}
+
 func (p *Profile) WriteTo(w io.Writer, debug int) error {
 	return nil
 }
