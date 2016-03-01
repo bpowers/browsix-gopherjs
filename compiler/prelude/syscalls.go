@@ -515,6 +515,11 @@ var USyscalls = (function () {
         this.outstanding[msgId] = cb;
         this.post(msgId, 'stat', path);
     };
+    USyscalls.prototype.getdents = function (fd, length, cb) {
+        var msgId = this.nextMsgId();
+        this.outstanding[msgId] = cb;
+        this.post(msgId, 'getdents', fd, length);
+    };
     USyscalls.prototype.pread = function (fd, length, offset, cb) {
         var msgId = this.nextMsgId();
         this.outstanding[msgId] = cb;
@@ -705,6 +710,16 @@ function sys_getcwd(cb, trap, arg0, arg1, arg2) {
     };
     syscall_1.syscall.getcwd.apply(syscall_1.syscall, [done]);
 }
+function sys_getdents64(cb, trap, arg0, arg1, arg2) {
+    var $fd = arg0;
+    var $buf = arg1;
+    var $len = arg2;
+    var done = function (err, buf) {
+        $buf.set(buf);
+        cb([err ? -1 : buf.byteLength, 0, err ? -1 : 0]);
+    };
+    syscall_1.syscall.getdents.apply(syscall_1.syscall, [$fd, $len, done]);
+}
 function sys_read(cb, trap, arg0, arg1, arg2) {
     var $readArray = arg1;
     var $readLen = arg2;
@@ -727,7 +742,7 @@ function sys_stat(cb, trap, arg0, arg1) {
     var $fstatArray = arg1;
     var done = function (err, stats) {
         var view = new DataView($fstatArray.buffer, $fstatArray.byteOffset);
-        node_binary_marshal_1.Marshal(view, 0, stats, node_binary_marshal_1.stat.StatDef);
+        node_binary_marshal_1.Marshal(view, 0, stats, node_binary_marshal_1.fs.StatDef);
         cb([err ? -1 : 0, 0, err ? -1 : 0]);
     };
     var len = arg0.length;
@@ -736,11 +751,24 @@ function sys_stat(cb, trap, arg0, arg1) {
     var s = buffer_1.utf8Slice(arg0, 0, len);
     syscall_1.syscall.stat.apply(syscall_1.syscall, [s, done]);
 }
+function sys_lstat(cb, trap, arg0, arg1) {
+    var $fstatArray = arg1;
+    var done = function (err, stats) {
+        var view = new DataView($fstatArray.buffer, $fstatArray.byteOffset);
+        node_binary_marshal_1.Marshal(view, 0, stats, node_binary_marshal_1.fs.StatDef);
+        cb([err ? -1 : 0, 0, err ? -1 : 0]);
+    };
+    var len = arg0.length;
+    if (len && arg0[arg0.length - 1] === 0)
+        len--;
+    var s = buffer_1.utf8Slice(arg0, 0, len);
+    syscall_1.syscall.lstat.apply(syscall_1.syscall, [s, done]);
+}
 function sys_fstat(cb, trap, arg0, arg1) {
     var $fstatArray = arg1;
     var done = function (err, stats) {
         var view = new DataView($fstatArray.buffer, $fstatArray.byteOffset);
-        node_binary_marshal_1.Marshal(view, 0, stats, node_binary_marshal_1.stat.StatDef);
+        node_binary_marshal_1.Marshal(view, 0, stats, node_binary_marshal_1.fs.StatDef);
         cb([err ? -1 : 0, 0, err ? -1 : 0]);
     };
     syscall_1.syscall.fstat.apply(syscall_1.syscall, [arg0, done]);
@@ -820,7 +848,7 @@ exports.syscallTbl = [
     sys_close,
     sys_stat,
     sys_fstat,
-    sys_ni_syscall,
+    sys_lstat,
     sys_ni_syscall,
     sys_ni_syscall,
     sys_ni_syscall,
@@ -1031,7 +1059,7 @@ exports.syscallTbl = [
     sys_ni_syscall,
     sys_ni_syscall,
     sys_ni_syscall,
-    sys_ni_syscall,
+    sys_getdents64,
     sys_ni_syscall,
     sys_ni_syscall,
     sys_ni_syscall,
@@ -1142,16 +1170,153 @@ exports.syscallTbl = [
     sys_ni_syscall,
 ];
 
-},{"../browser-node/binding/buffer":1,"../browser-node/syscall":2,"node-binary-marshal":5}],5:[function(require,module,exports){
+},{"../browser-node/binding/buffer":1,"../browser-node/syscall":2,"node-binary-marshal":6}],5:[function(require,module,exports){
+'use strict';
+var marshal_1 = require('./marshal');
+var utf8 = require('./utf8');
+exports.TimespecDef = {
+    fields: [
+        { name: 'sec', type: 'int64' },
+        { name: 'nsec', type: 'int64' },
+    ],
+    alignment: 'natural',
+    length: 16,
+};
+exports.TimevalDef = exports.TimespecDef;
+function nullMarshal(dst, off, src) {
+    return [undefined, null];
+}
+;
+function nullUnmarshal(src, off) {
+    return [null, undefined, null];
+}
+;
+function timespecMarshal(dst, off, src) {
+    var timestamp = Date.parse(src);
+    var secs = Math.floor(timestamp / 1000);
+    var timespec = {
+        sec: secs,
+        nsec: (timestamp - secs * 1000) * 1e6,
+    };
+    return marshal_1.Marshal(dst, off, timespec, exports.TimespecDef);
+}
+;
+function timespecUnmarshal(src, off) {
+    var timespec = {};
+    var _a = marshal_1.Unmarshal(timespec, src, off, exports.TimespecDef), len = _a[0], err = _a[1];
+    var sec = timespec.sec;
+    var nsec = timespec.nsec;
+    var timestr = new Date(sec * 1e3 + nsec / 1e6).toISOString();
+    return [timestr, len, err];
+}
+;
+exports.StatDef = {
+    fields: [
+        { name: 'dev', type: 'uint64' },
+        { name: 'ino', type: 'uint64' },
+        { name: 'nlink', type: 'uint64' },
+        { name: 'mode', type: 'uint32' },
+        { name: 'uid', type: 'uint32' },
+        { name: 'gid', type: 'uint32' },
+        { name: 'X__pad0', type: 'int32', marshal: nullMarshal, unmarshal: nullUnmarshal, omit: true },
+        { name: 'rdev', type: 'uint64' },
+        { name: 'size', type: 'int64' },
+        { name: 'blksize', type: 'int64' },
+        { name: 'blocks', type: 'int64' },
+        { name: 'atime', type: 'Timespec', count: 2, marshal: timespecMarshal, unmarshal: timespecUnmarshal },
+        { name: 'mtime', type: 'Timespec', count: 2, marshal: timespecMarshal, unmarshal: timespecUnmarshal },
+        { name: 'ctime', type: 'Timespec', count: 2, marshal: timespecMarshal, unmarshal: timespecUnmarshal },
+        { name: 'X__unused', type: 'int64', count: 3, marshal: nullMarshal, unmarshal: nullUnmarshal, omit: true },
+    ],
+    alignment: 'natural',
+    length: 144,
+};
+(function (DT) {
+    DT[DT["UNKNOWN"] = 0] = "UNKNOWN";
+    DT[DT["FIFO"] = 1] = "FIFO";
+    DT[DT["CHR"] = 2] = "CHR";
+    DT[DT["DIR"] = 4] = "DIR";
+    DT[DT["BLK"] = 6] = "BLK";
+    DT[DT["REG"] = 8] = "REG";
+    DT[DT["LNK"] = 10] = "LNK";
+    DT[DT["SOCK"] = 12] = "SOCK";
+    DT[DT["WHT"] = 14] = "WHT";
+})(exports.DT || (exports.DT = {}));
+var DT = exports.DT;
+;
+var Dirent = (function () {
+    function Dirent(ino, type, name) {
+        this.ino = ino;
+        this.type = type;
+        this.name = name;
+    }
+    Object.defineProperty(Dirent.prototype, "off", {
+        get: function () {
+            return 0;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Dirent.prototype, "reclen", {
+        get: function () {
+            var slen = utf8.utf8ToBytes(this.name).length;
+            var nZeros = nzeros(slen);
+            return slen + nZeros + 1 + 2 + 8 + 8;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    return Dirent;
+}());
+exports.Dirent = Dirent;
+function nzeros(nBytes) {
+    return (8 - ((nBytes + 3) % 8));
+}
+function nameMarshal(dst, off, src) {
+    if (typeof src !== 'string')
+        return [undefined, new Error('src not a string: ' + src)];
+    var bytes = utf8.utf8ToBytes(src);
+    var nZeros = nzeros(bytes.length);
+    if (off + bytes.length + nZeros > dst.byteLength)
+        return [undefined, new Error('dst not big enough')];
+    for (var i = 0; i < bytes.length; i++)
+        dst.setUint8(off + i, bytes[i]);
+    for (var i = 0; i < nZeros; i++)
+        dst.setUint8(off + bytes.length + i, 0);
+    return [bytes.length + nZeros, null];
+}
+;
+function nameUnmarshal(src, off) {
+    var len = 0;
+    for (var i = off; i < src.byteLength && src.getUint8(i) !== 0; i++)
+        len++;
+    var str = utf8.utf8Slice(src, off, off + len);
+    var nZeros = nzeros(len);
+    return [str, len + nZeros, null];
+}
+;
+exports.DirentDef = {
+    fields: [
+        { name: 'ino', type: 'uint64' },
+        { name: 'off', type: 'int64' },
+        { name: 'reclen', type: 'uint16' },
+        { name: 'type', type: 'uint8' },
+        { name: 'name', type: 'string', marshal: nameMarshal, unmarshal: nameUnmarshal },
+    ],
+    alignment: 'natural',
+};
+
+},{"./marshal":7,"./utf8":9}],6:[function(require,module,exports){
 'use strict';
 var _m = require('./marshal');
 var _so = require('./socket');
-var _st = require('./stat');
+var _fs = require('./fs');
 exports.Marshal = _m.Marshal;
+exports.Unmarshal = _m.Unmarshal;
 exports.socket = _so;
-exports.stat = _st;
+exports.fs = _fs;
 
-},{"./marshal":6,"./socket":7,"./stat":8}],6:[function(require,module,exports){
+},{"./fs":5,"./marshal":7,"./socket":8}],7:[function(require,module,exports){
 'use strict';
 function typeLen(type) {
     switch (type) {
@@ -1173,6 +1338,7 @@ function typeLen(type) {
             return 8;
         default:
             console.log('unknown type');
+            console.log(type);
             debugger;
             return undefined;
     }
@@ -1185,62 +1351,138 @@ var WRITE_FNS = {
     uint8: function (buf, off, field) {
         field = field >>> 0;
         buf.setUint8(off, field);
+        return [1, null];
     },
     uint16: function (buf, off, field) {
         field = field >>> 0;
         buf.setUint16(off, field, true);
+        return [2, null];
     },
     uint32: function (buf, off, field) {
         field = field >>> 0;
         buf.setUint32(off, field, true);
+        return [4, null];
     },
     uint64: function (buf, off, field) {
         var lo = field >>> 0;
-        var hi = 0;
-        if (field > lo)
-            hi = (field - (-1 >>> 0)) >>> 0;
+        var hi = (field / ((-1 >>> 0) + 1)) >>> 0;
         buf.setUint32(off, lo, true);
         buf.setUint32(off + 4, hi, true);
+        return [8, null];
     },
     int8: function (buf, off, field) {
         field = field | 0;
         buf.setInt8(off, field);
+        return [1, null];
     },
     int16: function (buf, off, field) {
         field = field | 0;
         buf.setInt16(off, field, true);
+        return [2, null];
     },
     int32: function (buf, off, field) {
         field = field | 0;
         buf.setInt32(off, field, true);
+        return [4, null];
     },
     int64: function (buf, off, field) {
         var lo = field | 0;
-        var hi = 0;
-        if (field > lo)
-            hi = (field - (-1 >>> 0)) | 0;
+        var hi = (field / ((-1 >>> 0) + 1)) | 0;
         buf.setInt32(off, lo, true);
         buf.setInt32(off + 4, hi, true);
+        return [8, null];
+    },
+};
+var READ_FNS = {
+    uint8: function (buf, off) {
+        var field = buf.getUint8(off) >>> 0;
+        return [field, 1, null];
+    },
+    uint16: function (buf, off) {
+        var field = buf.getUint16(off, true) >>> 0;
+        return [field, 2, null];
+    },
+    uint32: function (buf, off) {
+        var field = buf.getUint32(off, true) >>> 0;
+        return [field, 4, null];
+    },
+    uint64: function (buf, off) {
+        var lo = buf.getUint32(off, true);
+        var hi = buf.getUint32(off + 4, true);
+        if (hi !== 0)
+            hi *= ((-1 >>> 0) + 1);
+        return [lo + hi, 8, null];
+    },
+    int8: function (buf, off) {
+        var field = buf.getInt8(off) | 0;
+        return [field, 1, null];
+    },
+    int16: function (buf, off) {
+        var field = buf.getInt16(off, true) | 0;
+        return [field, 2, null];
+    },
+    int32: function (buf, off) {
+        var field = buf.getInt32(off, true) | 0;
+        return [field, 4, null];
+    },
+    int64: function (buf, off) {
+        var lo = buf.getInt32(off, true);
+        var hi = buf.getInt32(off + 4, true);
+        if (hi !== 0)
+            hi *= ((-1 >>> 0) + 1);
+        return [lo + hi, 8, null];
     },
 };
 function Marshal(buf, off, obj, def) {
     if (!buf || !obj || !def)
-        return 'missing required inputs';
+        return [0, new Error('missing required inputs')];
+    var start = off;
     var write = WRITE_FNS;
     for (var i = 0; i < def.fields.length; i++) {
         var field = def.fields[i];
+        var val = obj[field.name];
+        var len = void 0;
         var err = void 0;
         if (field.marshal)
-            err = field.marshal(buf, off, obj[field.name]);
+            _a = field.marshal(buf, off, val), len = _a[0], err = _a[1];
         else
-            err = write[field.type](buf, off, obj[field.name]);
+            _b = write[field.type](buf, off, val), len = _b[0], err = _b[1];
         if (err)
-            throw new Error(err);
-        var len = fieldLen(field);
+            return [off - start, err];
+        if (len === undefined)
+            len = fieldLen(field);
         off += len;
     }
+    return [off - start, null];
+    var _a, _b;
 }
 exports.Marshal = Marshal;
+function Unmarshal(obj, buf, off, def) {
+    if (!buf || !def)
+        return [0, new Error('missing required inputs')];
+    var start = off;
+    var read = READ_FNS;
+    for (var i = 0; i < def.fields.length; i++) {
+        var field = def.fields[i];
+        var val = void 0;
+        var len = void 0;
+        var err = void 0;
+        if (field.unmarshal)
+            _a = field.unmarshal(buf, off), val = _a[0], len = _a[1], err = _a[2];
+        else
+            _b = read[field.type](buf, off), val = _b[0], len = _b[1], err = _b[2];
+        if (err)
+            return [off - start, err];
+        if (!field.omit)
+            obj[field.name] = val;
+        if (len === undefined)
+            len = fieldLen(field);
+        off += len;
+    }
+    return [off - start, null];
+    var _a, _b;
+}
+exports.Unmarshal = Unmarshal;
 function isZero(field) {
     for (var i = 0; i < field.byteLength; i++) {
         if (field.getUint8(i) !== 0)
@@ -1250,21 +1492,25 @@ function isZero(field) {
 }
 exports.isZero = isZero;
 
-},{}],7:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 'use strict';
 var marshal_1 = require('./marshal');
 function IPv4BytesToStr(src, off) {
     if (!off)
         off = 0;
-    return '' + src.getUint8(off + 0) +
-        '.' + src.getUint8(off + 1) +
-        '.' + src.getUint8(off + 2) +
-        '.' + src.getUint8(off + 3);
+    return [
+        '' + src.getUint8(off + 0) +
+            '.' + src.getUint8(off + 1) +
+            '.' + src.getUint8(off + 2) +
+            '.' + src.getUint8(off + 3),
+        4,
+        null
+    ];
 }
 exports.IPv4BytesToStr = IPv4BytesToStr;
 function IPv4StrToBytes(dst, off, src) {
     if (!dst || dst.byteLength < 4)
-        return 'invalid dst';
+        return [undefined, new Error('invalid dst')];
     dst.setUint8(off + 0, 0);
     dst.setUint8(off + 1, 0);
     dst.setUint8(off + 2, 0);
@@ -1278,7 +1524,7 @@ function IPv4StrToBytes(dst, off, src) {
         }
         dst.setUint8(n, dst.getUint8(n) * 10 + parseInt(src[i], 10));
     }
-    return undefined;
+    return [4, null];
 }
 exports.IPv4StrToBytes = IPv4StrToBytes;
 exports.SockAddrInDef = {
@@ -1305,51 +1551,159 @@ exports.SockAddrInDef = {
     length: 16,
 };
 
-},{"./marshal":6}],8:[function(require,module,exports){
+},{"./marshal":7}],9:[function(require,module,exports){
 'use strict';
-var marshal_1 = require('./marshal');
-exports.TimespecDef = {
-    fields: [
-        { name: 'sec', type: 'int64' },
-        { name: 'nsec', type: 'int64' },
-    ],
-    alignment: 'natural',
-    length: 16,
-};
-exports.TimevalDef = exports.TimespecDef;
-function nullMarshal(dst, off, src) { }
-;
-function timespecMarshal(dst, off, src) {
-    var timestamp = Date.parse(src);
-    var secs = Math.floor(timestamp / 1000);
-    var timespec = {
-        sec: secs,
-        nsec: (timestamp - secs * 1000) * 1e6,
-    };
-    marshal_1.Marshal(dst, off, timespec, exports.TimespecDef);
+exports.kMaxLength = 0x3fffffff;
+function blitBuffer(src, dst, offset, length) {
+    var i;
+    for (i = 0; i < length; i++) {
+        if ((i + offset >= dst.length) || (i >= src.length))
+            break;
+        dst[i + offset] = src[i];
+    }
+    return i;
 }
-;
-exports.StatDef = {
-    fields: [
-        { name: 'dev', type: 'uint64' },
-        { name: 'ino', type: 'uint64' },
-        { name: 'nlink', type: 'uint64' },
-        { name: 'mode', type: 'uint32' },
-        { name: 'uid', type: 'uint32' },
-        { name: 'gid', type: 'uint32' },
-        { name: 'X__pad0', type: 'int32', marshal: nullMarshal, omit: true },
-        { name: 'rdev', type: 'uint64' },
-        { name: 'size', type: 'int64' },
-        { name: 'blksize', type: 'int64' },
-        { name: 'blocks', type: 'int64' },
-        { name: 'atime', type: 'int64', count: 2, marshal: timespecMarshal },
-        { name: 'mtime', type: 'int64', count: 2, marshal: timespecMarshal },
-        { name: 'ctime', type: 'int64', count: 2, marshal: timespecMarshal },
-        { name: 'X__unused', type: 'int64', count: 3, marshal: nullMarshal, omit: true },
-    ],
-    alignment: 'natural',
-    length: 144,
-};
+function utf8Slice(buf, start, end) {
+    end = Math.min(buf.byteLength, end);
+    var res = [];
+    var i = start;
+    while (i < end) {
+        var firstByte = buf.getUint8(i);
+        var codePoint = null;
+        var bytesPerSequence = (firstByte > 0xEF) ? 4
+            : (firstByte > 0xDF) ? 3
+                : (firstByte > 0xBF) ? 2
+                    : 1;
+        if (i + bytesPerSequence <= end) {
+            var secondByte = void 0, thirdByte = void 0, fourthByte = void 0, tempCodePoint = void 0;
+            switch (bytesPerSequence) {
+                case 1:
+                    if (firstByte < 0x80) {
+                        codePoint = firstByte;
+                    }
+                    break;
+                case 2:
+                    secondByte = buf.getUint8(i + 1);
+                    if ((secondByte & 0xC0) === 0x80) {
+                        tempCodePoint = (firstByte & 0x1F) << 0x6 | (secondByte & 0x3F);
+                        if (tempCodePoint > 0x7F) {
+                            codePoint = tempCodePoint;
+                        }
+                    }
+                    break;
+                case 3:
+                    secondByte = buf.getUint8(i + 1);
+                    thirdByte = buf.getUint8(i + 2);
+                    if ((secondByte & 0xC0) === 0x80 && (thirdByte & 0xC0) === 0x80) {
+                        tempCodePoint = (firstByte & 0xF) << 0xC | (secondByte & 0x3F) << 0x6 | (thirdByte & 0x3F);
+                        if (tempCodePoint > 0x7FF && (tempCodePoint < 0xD800 || tempCodePoint > 0xDFFF)) {
+                            codePoint = tempCodePoint;
+                        }
+                    }
+                    break;
+                case 4:
+                    secondByte = buf.getUint8(i + 1);
+                    thirdByte = buf.getUint8(i + 2);
+                    fourthByte = buf.getUint8(i + 3);
+                    if ((secondByte & 0xC0) === 0x80 && (thirdByte & 0xC0) === 0x80 && (fourthByte & 0xC0) === 0x80) {
+                        tempCodePoint = (firstByte & 0xF) << 0x12 | (secondByte & 0x3F) << 0xC | (thirdByte & 0x3F) << 0x6 | (fourthByte & 0x3F);
+                        if (tempCodePoint > 0xFFFF && tempCodePoint < 0x110000) {
+                            codePoint = tempCodePoint;
+                        }
+                    }
+            }
+        }
+        if (codePoint === null) {
+            codePoint = 0xFFFD;
+            bytesPerSequence = 1;
+        }
+        else if (codePoint > 0xFFFF) {
+            codePoint -= 0x10000;
+            res.push(codePoint >>> 10 & 0x3FF | 0xD800);
+            codePoint = 0xDC00 | codePoint & 0x3FF;
+        }
+        res.push(codePoint);
+        i += bytesPerSequence;
+    }
+    return decodeCodePointsArray(res);
+}
+exports.utf8Slice = utf8Slice;
+var MAX_ARGUMENTS_LENGTH = 0x1000;
+function decodeCodePointsArray(codePoints) {
+    var len = codePoints.length;
+    if (len <= MAX_ARGUMENTS_LENGTH) {
+        return String.fromCharCode.apply(String, codePoints);
+    }
+    var res = '';
+    var i = 0;
+    while (i < len) {
+        res += String.fromCharCode.apply(String, codePoints.slice(i, i += MAX_ARGUMENTS_LENGTH));
+    }
+    return res;
+}
+function utf8ToBytes(string, units) {
+    units = units || Infinity;
+    var codePoint;
+    var length = string.length;
+    var leadSurrogate = null;
+    var bytes = [];
+    for (var i = 0; i < length; i++) {
+        codePoint = string.charCodeAt(i);
+        if (codePoint > 0xD7FF && codePoint < 0xE000) {
+            if (!leadSurrogate) {
+                if (codePoint > 0xDBFF) {
+                    if ((units -= 3) > -1)
+                        bytes.push(0xEF, 0xBF, 0xBD);
+                    continue;
+                }
+                else if (i + 1 === length) {
+                    if ((units -= 3) > -1)
+                        bytes.push(0xEF, 0xBF, 0xBD);
+                    continue;
+                }
+                leadSurrogate = codePoint;
+                continue;
+            }
+            if (codePoint < 0xDC00) {
+                if ((units -= 3) > -1)
+                    bytes.push(0xEF, 0xBF, 0xBD);
+                leadSurrogate = codePoint;
+                continue;
+            }
+            codePoint = leadSurrogate - 0xD800 << 10 | codePoint - 0xDC00 | 0x10000;
+        }
+        else if (leadSurrogate) {
+            if ((units -= 3) > -1)
+                bytes.push(0xEF, 0xBF, 0xBD);
+        }
+        leadSurrogate = null;
+        if (codePoint < 0x80) {
+            if ((units -= 1) < 0)
+                break;
+            bytes.push(codePoint);
+        }
+        else if (codePoint < 0x800) {
+            if ((units -= 2) < 0)
+                break;
+            bytes.push(codePoint >> 0x6 | 0xC0, codePoint & 0x3F | 0x80);
+        }
+        else if (codePoint < 0x10000) {
+            if ((units -= 3) < 0)
+                break;
+            bytes.push(codePoint >> 0xC | 0xE0, codePoint >> 0x6 & 0x3F | 0x80, codePoint & 0x3F | 0x80);
+        }
+        else if (codePoint < 0x110000) {
+            if ((units -= 4) < 0)
+                break;
+            bytes.push(codePoint >> 0x12 | 0xF0, codePoint >> 0xC & 0x3F | 0x80, codePoint >> 0x6 & 0x3F | 0x80, codePoint & 0x3F | 0x80);
+        }
+        else {
+            throw new Error('Invalid code point');
+        }
+    }
+    return bytes;
+}
+exports.utf8ToBytes = utf8ToBytes;
 
-},{"./marshal":6}]},{},[3]);
+},{}]},{},[3]);
 `
