@@ -145,6 +145,9 @@ var $go = function(fun, args, direct) {
             $global.process.exit(2);
           }
         }
+        if ($mainFinished && $global.process !== undefined) {
+          process.exit();
+        }
       }
     }
   };

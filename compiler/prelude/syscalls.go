@@ -515,6 +515,11 @@ var USyscalls = (function () {
         this.outstanding[msgId] = cb;
         this.post(msgId, 'stat', path);
     };
+    USyscalls.prototype.ioctl = function (fd, request, length, cb) {
+        var msgId = this.nextMsgId();
+        this.outstanding[msgId] = cb;
+        this.post(msgId, 'ioctl', fd, request, length);
+    };
     USyscalls.prototype.getdents = function (fd, length, cb) {
         var msgId = this.nextMsgId();
         this.outstanding[msgId] = cb;
@@ -655,6 +660,10 @@ var Process = (function (_super) {
         this.argv = argv;
         this.env = environ;
     }
+    Process.prototype.exit = function (code) {
+        if (code === void 0) { code = 0; }
+        syscall_1.syscall.exit(code);
+    };
     return Process;
 })(OnceEmitter);
 var process = new Process(null, null);
@@ -710,12 +719,25 @@ function sys_getcwd(cb, trap, arg0, arg1, arg2) {
     };
     syscall_1.syscall.getcwd.apply(syscall_1.syscall, [done]);
 }
+function sys_ioctl(cb, trap, arg0, arg1, arg2) {
+    var $fd = arg0;
+    var $request = arg1;
+    var $argp = arg2;
+    debugger;
+    var done = function (err, buf) {
+        if (!err)
+            $argp.set(buf);
+        cb([err ? -1 : buf.byteLength, 0, err ? -1 : 0]);
+    };
+    syscall_1.syscall.ioctl.apply(syscall_1.syscall, [$fd, $request, $argp.byteLength]);
+}
 function sys_getdents64(cb, trap, arg0, arg1, arg2) {
     var $fd = arg0;
     var $buf = arg1;
     var $len = arg2;
     var done = function (err, buf) {
-        $buf.set(buf);
+        if (!err)
+            $buf.set(buf);
         cb([err ? -1 : buf.byteLength, 0, err ? -1 : 0]);
     };
     syscall_1.syscall.getdents.apply(syscall_1.syscall, [$fd, $len, done]);
@@ -858,7 +880,7 @@ exports.syscallTbl = [
     sys_ni_syscall,
     sys_ni_syscall,
     sys_ni_syscall,
-    sys_ni_syscall,
+    sys_ioctl,
     sys_ni_syscall,
     sys_ni_syscall,
     sys_ni_syscall,
