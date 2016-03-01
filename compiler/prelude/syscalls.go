@@ -155,6 +155,7 @@ function utf8ToBytes(string, units) {
     }
     return bytes;
 }
+exports.utf8ToBytes = utf8ToBytes;
 function asciiSlice(buf, start, end) {
     var ret = '';
     end = Math.min(buf.length, end);
@@ -520,6 +521,11 @@ var USyscalls = (function () {
         this.outstanding[msgId] = cb;
         this.post(msgId, 'ioctl', fd, request, length);
     };
+    USyscalls.prototype.readlink = function (path, cb) {
+        var msgId = this.nextMsgId();
+        this.outstanding[msgId] = cb;
+        this.post(msgId, 'readlink', path);
+    };
     USyscalls.prototype.getdents = function (fd, length, cb) {
         var msgId = this.nextMsgId();
         this.outstanding[msgId] = cb;
@@ -723,13 +729,12 @@ function sys_ioctl(cb, trap, arg0, arg1, arg2) {
     var $fd = arg0;
     var $request = arg1;
     var $argp = arg2;
-    debugger;
     var done = function (err, buf) {
-        if (!err)
+        if (!err && $argp.byteLength !== undefined)
             $argp.set(buf);
-        cb([err ? -1 : buf.byteLength, 0, err ? -1 : 0]);
+        cb([err ? err : buf.byteLength, 0, err ? -1 : 0]);
     };
-    syscall_1.syscall.ioctl.apply(syscall_1.syscall, [$fd, $request, $argp.byteLength]);
+    syscall_1.syscall.ioctl.apply(syscall_1.syscall, [$fd, $request, $argp.byteLength, done]);
 }
 function sys_getdents64(cb, trap, arg0, arg1, arg2) {
     var $fd = arg0;
@@ -794,6 +799,29 @@ function sys_fstat(cb, trap, arg0, arg1) {
         cb([err ? -1 : 0, 0, err ? -1 : 0]);
     };
     syscall_1.syscall.fstat.apply(syscall_1.syscall, [arg0, done]);
+}
+function sys_readlinkat(cb, trap, arg0, arg1, arg2, arg3) {
+    var $fd = arg0 | 0;
+    var $path = arg1;
+    var $buf = arg2;
+    var $buflen = arg3;
+    if ((arg0 | 0) !== AT_FDCWD) {
+        debugger;
+        setTimeout(cb, 0, [-1, 0, -1]);
+        return;
+    }
+    var done = function (err, linkString) {
+        var bytes = [];
+        if (!err) {
+            var bytes_1 = buffer_1.utf8ToBytes(linkString);
+            $buf.set(bytes_1);
+        }
+        cb([err ? -1 : bytes.length, 0, err ? -1 : 0]);
+    };
+    var len = $path.length;
+    if (len && arg1[$path.length - 1] === 0)
+        len--;
+    syscall_1.syscall.readlink.apply(syscall_1.syscall, [buffer_1.utf8Slice($path, 0, len), done]);
 }
 function sys_openat(cb, trap, arg0, arg1, arg2, arg3) {
     if ((arg0 | 0) !== AT_FDCWD) {
@@ -1131,7 +1159,7 @@ exports.syscallTbl = [
     sys_ni_syscall,
     sys_ni_syscall,
     sys_ni_syscall,
-    sys_ni_syscall,
+    sys_readlinkat,
     sys_ni_syscall,
     sys_ni_syscall,
     sys_ni_syscall,
