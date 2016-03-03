@@ -436,6 +436,11 @@ var USyscalls = (function () {
         this.outstanding[msgId] = cb;
         this.post(msgId, 'getcwd');
     };
+    USyscalls.prototype.getpid = function (cb) {
+        var msgId = this.nextMsgId();
+        this.outstanding[msgId] = cb;
+        this.post(msgId, 'getpid');
+    };
     USyscalls.prototype.spawn = function (cwd, name, args, env, files, cb) {
         var msgId = this.nextMsgId();
         this.outstanding[msgId] = cb;
@@ -711,6 +716,12 @@ function sys_ni_syscall(cb, trap) {
     debugger;
     setTimeout(cb, 0, [-1, 0, -ENOSYS]);
 }
+function sys_getpid(cb, trap) {
+    var done = function (err, pid) {
+        cb([pid, 0, 0]);
+    };
+    syscall_1.syscall.getpid.apply(syscall_1.syscall, [done]);
+}
 function sys_getcwd(cb, trap, arg0, arg1, arg2) {
     var $getcwdArray = arg0;
     var $getcwdLen = arg1;
@@ -931,7 +942,7 @@ exports.syscallTbl = [
     sys_ni_syscall,
     sys_ni_syscall,
     sys_ni_syscall,
-    sys_ni_syscall,
+    sys_getpid,
     sys_ni_syscall,
     sys_socket,
     sys_ni_syscall,
