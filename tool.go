@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"go/ast"
 	"go/build"
@@ -23,6 +24,8 @@ import (
 	"syscall"
 	"text/template"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	gbuild "github.com/gopherjs/gopherjs/build"
 	"github.com/gopherjs/gopherjs/compiler"
@@ -334,13 +337,26 @@ func main() {
 						return err
 					}
 
-					for _, decl := range archive.Declarations {
-						if strings.HasPrefix(decl.FullName, testPkg.ImportPath+".Test") {
-							tests.Tests = append(tests.Tests, testFunc{Package: testPkgName, Name: decl.FullName[len(testPkg.ImportPath)+1:]})
-							*needVar = true
+					tFunc := func(decl *compiler.Decl) testFunc {
+						return testFunc{
+							Package: testPkgName,
+							Name:    decl.FullName[len(testPkg.ImportPath)+1:],
 						}
-						if strings.HasPrefix(decl.FullName, testPkg.ImportPath+".Benchmark") {
-							tests.Benchmarks = append(tests.Benchmarks, testFunc{Package: testPkgName, Name: decl.FullName[len(testPkg.ImportPath)+1:]})
+					}
+
+					for _, decl := range archive.Declarations {
+						switch {
+						case isTestMain(decl):
+							if tests.TestMain != nil {
+								return errors.New("multiple definitions of TestMain")
+							}
+							tMain := tFunc(decl)
+							tests.TestMain = &tMain
+						case isTest(decl.FullName, testPkg.ImportPath+".Test"):
+							tests.Tests = append(tests.Tests, tFunc(decl))
+							*needVar = true
+						case isTest(decl.FullName, testPkg.ImportPath+".Benchmark"):
+							tests.Benchmarks = append(tests.Benchmarks, tFunc(decl))
 							*needVar = true
 						}
 					}
@@ -773,6 +789,7 @@ type testFuncs struct {
 	Tests      []testFunc
 	Benchmarks []testFunc
 	Examples   []testFunc
+	TestMain   *testFunc
 	Package    *build.Package
 	NeedTest   bool
 	NeedXtest  bool
@@ -784,10 +801,32 @@ type testFunc struct {
 	Output  string // output, for examples
 }
 
+// isTestMain tells whether fn is a TestMain(m *testing.Main) function.
+func isTestMain(fn *compiler.Decl) bool {
+	return strings.HasSuffix(fn.FullName, ".TestMain")
+}
+
+// isTest tells whether name looks like a test (or benchmark, according to prefix).
+// It is a Test (say) if there is a character after Test that is not a lower-case letter.
+// We don't want TesticularCancer.
+func isTest(name, prefix string) bool {
+	if !strings.HasPrefix(name, prefix) {
+		return false
+	}
+	if len(name) == len(prefix) { // "Test" is ok
+		return true
+	}
+	rune, _ := utf8.DecodeRuneInString(name[len(prefix):])
+	return !unicode.IsLower(rune)
+}
+
 var testmainTmpl = template.Must(template.New("main").Parse(`
 package main
 
 import (
+{{if not .TestMain}}
+	"os"
+{{end}}
 	"regexp"
 	"testing"
 
@@ -832,7 +871,12 @@ func matchString(pat, str string) (result bool, err error) {
 }
 
 func main() {
-	testing.Main(matchString, tests, benchmarks, examples)
+	m := testing.MainStart(matchString, tests, benchmarks, examples)
+{{with .TestMain}}
+	{{.Package}}.{{.Name}}(m)
+{{else}}
+	os.Exit(m.Run())
+{{end}}
 }
 
 `))
