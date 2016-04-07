@@ -428,11 +428,35 @@ function sys_ni_syscall(cb, trap) {
     debugger;
     setTimeout(cb, 0, [-1, 0, -ENOSYS]);
 }
+var sys_wait4 = sys_ni_syscall;
 function sys_getpid(cb, trap) {
     var done = function (err, pid) {
         cb([pid, 0, 0]);
     };
     syscall_1.syscall.getpid.apply(syscall_1.syscall, [done]);
+}
+var zeroBuf = new Uint8Array(0);
+function sys_spawn(cb, trap, dir, argv0, argv, envv, fds) {
+    if (!(dir instanceof Uint8Array))
+        dir = zeroBuf;
+    if (!(argv0 instanceof Uint8Array))
+        argv0 = zeroBuf;
+    argv = argv.filter(function (x) { return x instanceof Uint8Array; });
+    envv = envv.filter(function (x) { return x instanceof Uint8Array; });
+    var done = function (err, pid) {
+        cb([err ? -1 : pid, 0, err ? err : 0]);
+    };
+    syscall_1.syscall.spawn.apply(syscall_1.syscall, [dir, argv0, argv, envv, fds, done]);
+}
+function sys_pipe2(cb, trap, fds, flags) {
+    var done = function (err, fd1, fd2) {
+        if (!err) {
+            fds[0] = fd1;
+            fds[1] = fd2;
+        }
+        cb([err ? err : 0, 0, err ? err : 0]);
+    };
+    syscall_1.syscall.pipe2(flags, done);
 }
 function sys_getcwd(cb, trap, arg0, arg1, arg2) {
     var $getcwdArray = arg0;
@@ -671,7 +695,7 @@ exports.syscallTbl = [
     sys_ni_syscall,
     sys_ni_syscall,
     sys_ni_syscall,
-    sys_ni_syscall,
+    sys_wait4,
     sys_ni_syscall,
     sys_ni_syscall,
     sys_ni_syscall,
@@ -903,6 +927,7 @@ exports.syscallTbl = [
     sys_ni_syscall,
     sys_ni_syscall,
     sys_ni_syscall,
+    sys_pipe2,
     sys_ni_syscall,
     sys_ni_syscall,
     sys_ni_syscall,
@@ -935,7 +960,7 @@ exports.syscallTbl = [
     sys_ni_syscall,
     sys_ni_syscall,
     sys_ni_syscall,
-    sys_ni_syscall,
+    sys_spawn,
 ];
 
 },{"../browser-node/syscall":1}]},{},[2]);
