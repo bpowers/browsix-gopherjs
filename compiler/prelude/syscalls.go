@@ -572,8 +572,6 @@ function sys_openat(cb, trap, arg0, arg1, arg2, arg3) {
         return;
     }
     var done = function (err, fd) {
-        if (err)
-            console.log('error: ' + err);
         cb([fd, 0, err ? -1 : 0]);
     };
     var len = arg1.length;
