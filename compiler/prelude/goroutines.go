@@ -159,6 +159,59 @@ var $go = function(fun, args, direct) {
   $schedule($goroutine, direct);
 };
 
+(function() {
+  var _this = this;
+  if (typeof setImmediate === 'undefined') {
+    var g = self;
+    var timeouts = [];
+    var messageName = "zero-timeout-message";
+    var canUsePostMessage = function () {
+      if (typeof g.importScripts !== 'undefined' || !g.postMessage)
+        return false;
+      var isAsync = true;
+      var oldOnMessage = g.onmessage;
+      g.onmessage = function () { isAsync = false; };
+      g.postMessage('', '*');
+      g.onmessage = oldOnMessage;
+      return isAsync;
+    };
+    if (canUsePostMessage()) {
+      g.setImmediate = function (fn) {
+        var args = [];
+        for (var _i = 1; _i < arguments.length; _i++) {
+          args[_i - 1] = arguments[_i];
+        }
+        timeouts.push([fn, args]);
+        g.postMessage(messageName, "*");
+      };
+      var handleMessage = function (event) {
+        if (event.source === self && event.data === messageName) {
+          if (event.stopPropagation)
+            event.stopPropagation();
+          else
+            event.cancelBubble = true;
+        }
+        if (timeouts.length > 0) {
+          var _a = timeouts.shift(), fn = _a[0], args = _a[1];
+          return fn.apply(_this, args);
+        }
+      };
+      g.addEventListener('message', handleMessage, true);
+      console.log('using postMessage for setImmediate');
+    }
+    else {
+      console.log('not using postMessage for setImmediate :(');
+      g.setImmediate = function (fn) {
+        var args = [];
+        for (var _i = 1; _i < arguments.length; _i++) {
+          args[_i - 1] = arguments[_i];
+        }
+        return setTimeout.apply(_this, [fn, 0].concat(args));
+      };
+    }
+  }
+})();
+
 var $scheduled = [], $schedulerActive = false;
 var $runScheduled = function() {
   try {
@@ -169,7 +222,7 @@ var $runScheduled = function() {
     $schedulerActive = false;
   } finally {
     if ($schedulerActive) {
-      setTimeout($runScheduled, 0);
+      setImmediate($runScheduled);
     }
   }
 };
@@ -187,7 +240,7 @@ var $schedule = function(goroutine, direct) {
   $scheduled.push(goroutine);
   if (!$schedulerActive) {
     $schedulerActive = true;
-    setTimeout($runScheduled, 0);
+    setImmediate($runScheduled);
   }
 };
 
