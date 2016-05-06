@@ -630,8 +630,11 @@ var $newDataPointer = function(data, constructor) {
 };
 
 var $indexPtr = function(array, index, constructor) {
+  if (array.$ptr && array.$ptr[index])
+    return array.$ptr[index];
+
   array.$ptr = array.$ptr || {};
-  return array.$ptr[index] || (array.$ptr[index] = new constructor(function() { return array[index]; }, function(v) { array[index] = v; }));
+  return (array.$ptr[index] = new constructor(function() { return array[index]; }, function(v) { array[index] = v; }));
 };
 
 var $sliceType = function(elem) {
