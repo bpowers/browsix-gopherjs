@@ -46,7 +46,6 @@ func listenBrowsix(net, laddr string) (Listener, error) {
 	family, sotype := syscall.AF_INET, syscall.SOCK_STREAM
 
 	addr, err := ResolveTCPAddr("tcp4", laddr)
-	addr.Port = 8080 // FIXME: :(
 	if err != nil {
 		return nil, err
 	}
