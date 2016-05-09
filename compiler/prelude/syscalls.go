@@ -462,9 +462,8 @@ function sys_getcwd(cb, trap, arg0, arg1, arg2) {
     var $getcwdArray = arg0;
     var $getcwdLen = arg1;
     var done = function (p) {
-        for (var i = 0; i < p.length; i++)
-            $getcwdArray[i] = p.charCodeAt(i);
-        var nullPos = p.length;
+        $getcwdArray.set(p);
+        var nullPos = p.byteLength;
         if (nullPos >= $getcwdArray.byteLength)
             nullPos = $getcwdArray.byteLength;
         $getcwdArray[nullPos] = 0;
