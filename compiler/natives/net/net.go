@@ -6,7 +6,7 @@ import (
 	"errors"
 	"syscall"
 
-	"github.com/gopherjs/gopherjs/js"
+	"github.com/bpowers/browsix-gopherjs/js"
 )
 
 func runtime_pollServerInit() {

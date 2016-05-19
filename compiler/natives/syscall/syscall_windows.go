@@ -42,11 +42,11 @@ func getprocaddress(handle uintptr, procname *uint8) (proc uintptr, err Errno) {
 }
 
 func (d *LazyDLL) Load() error {
-	return &DLLError{Msg: "system calls not available, see https://github.com/gopherjs/gopherjs/blob/master/doc/syscalls.md"}
+	return &DLLError{Msg: "system calls not available, see https://github.com/bpowers/browsix-gopherjs/blob/master/doc/syscalls.md"}
 }
 
 func (p *LazyProc) Find() error {
-	return &DLLError{Msg: "system calls not available, see https://github.com/gopherjs/gopherjs/blob/master/doc/syscalls.md"}
+	return &DLLError{Msg: "system calls not available, see https://github.com/bpowers/browsix-gopherjs/blob/master/doc/syscalls.md"}
 }
 
 func getStdHandle(h int) (fd Handle) {

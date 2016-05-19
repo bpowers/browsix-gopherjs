@@ -6,7 +6,7 @@ import (
 	"bytes"
 	"unsafe"
 
-	"github.com/gopherjs/gopherjs/js"
+	"github.com/bpowers/browsix-gopherjs/js"
 )
 
 var warningPrinted = false
@@ -23,7 +23,7 @@ func init() {
 
 func printWarning() {
 	if !warningPrinted {
-		js.Global.Get("console").Call("error", "warning: system calls not available, see https://github.com/gopherjs/gopherjs/blob/master/doc/syscalls.md")
+		js.Global.Get("console").Call("error", "warning: system calls not available, see https://github.com/bpowers/browsix-gopherjs/blob/master/doc/syscalls.md")
 	}
 	warningPrinted = true
 }

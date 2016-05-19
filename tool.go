@@ -27,8 +27,8 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	gbuild "github.com/gopherjs/gopherjs/build"
-	"github.com/gopherjs/gopherjs/compiler"
+	gbuild "github.com/bpowers/browsix-gopherjs/build"
+	"github.com/bpowers/browsix-gopherjs/compiler"
 	"github.com/neelance/sourcemap"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"

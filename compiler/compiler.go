@@ -11,8 +11,8 @@ import (
 	"io"
 	"strings"
 
-	"github.com/gopherjs/gopherjs/compiler/prelude"
-	"github.com/gopherjs/gopherjs/third_party/importer"
+	"github.com/bpowers/browsix-gopherjs/compiler/prelude"
+	"github.com/bpowers/browsix-gopherjs/third_party/importer"
 )
 
 var sizes32 = &types.StdSizes{WordSize: 4, MaxAlign: 8}

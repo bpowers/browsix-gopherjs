@@ -11,8 +11,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/gopherjs/gopherjs/compiler/analysis"
-	"github.com/gopherjs/gopherjs/third_party/importer"
+	"github.com/bpowers/browsix-gopherjs/compiler/analysis"
+	"github.com/bpowers/browsix-gopherjs/third_party/importer"
 	"github.com/neelance/astrewrite"
 	"golang.org/x/tools/go/types/typeutil"
 )
@@ -109,7 +109,7 @@ func (pi packageImporter) Import(path string) (*types.Package, error) {
 	a, err := pi.importContext.Import(path)
 	if err != nil {
 		if *pi.importError == nil {
-			// If import failed, show first error of import only (https://github.com/gopherjs/gopherjs/issues/119).
+			// If import failed, show first error of import only (https://github.com/bpowers/browsix-gopherjs/issues/119).
 			*pi.importError = err
 		}
 		return nil, err

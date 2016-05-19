@@ -5,7 +5,7 @@ package runtime
 import (
 	"runtime/internal/sys"
 
-	"github.com/gopherjs/gopherjs/js"
+	"github.com/bpowers/browsix-gopherjs/js"
 )
 
 const GOOS = sys.TheGoos
@@ -20,7 +20,7 @@ type eface struct {
 }
 
 func init() {
-	jsPkg := js.Global.Get("$packages").Get("github.com/gopherjs/gopherjs/js")
+	jsPkg := js.Global.Get("$packages").Get("github.com/bpowers/browsix-gopherjs/js")
 	js.Global.Set("$jsObjectPtr", jsPkg.Get("Object").Get("ptr"))
 	js.Global.Set("$jsErrorPtr", jsPkg.Get("Error").Get("ptr"))
 	js.Global.Set("$throwRuntimeError", js.InternalObject(func(msg string) {

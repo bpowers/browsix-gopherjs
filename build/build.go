@@ -17,7 +17,7 @@ import (
 	"time"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/gopherjs/gopherjs/compiler"
+	"github.com/bpowers/browsix-gopherjs/compiler"
 	"github.com/kardianos/osext"
 	"github.com/neelance/sourcemap"
 )
@@ -153,7 +153,7 @@ func parse(pkg *build.Package, isTest bool, fileSet *token.FileSet) ([]*ast.File
 	if isXTest {
 		importPath = importPath[:len(importPath)-5]
 	}
-	if nativesPkg, err := Import("github.com/gopherjs/gopherjs/compiler/natives/"+importPath, 0, "", nil); err == nil {
+	if nativesPkg, err := Import("github.com/bpowers/browsix-gopherjs/compiler/natives/"+importPath, 0, "", nil); err == nil {
 		names := nativesPkg.GoFiles
 		if isTest {
 			names = append(names, nativesPkg.TestGoFiles...)
@@ -223,7 +223,7 @@ func parse(pkg *build.Package, isTest bool, fileSet *token.FileSet) ([]*ast.File
 					if spec.Name == nil {
 						spec.Name = ast.NewIdent("sync")
 					}
-					spec.Path.Value = `"github.com/gopherjs/gopherjs/nosync"`
+					spec.Path.Value = `"github.com/bpowers/browsix-gopherjs/nosync"`
 				}
 			}
 		}
