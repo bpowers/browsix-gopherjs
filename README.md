@@ -1,6 +1,14 @@
 GopherJS - A compiler from Go to JavaScript
 -------------------------------------------
 
+**This is a fork of [GopherJS](https://github.com/gopherjs/gopherjs)
+  with support for running binaries in the browser in conjunction with
+  [Browsix](https://github.com/plasma-umass/browsix). Compiled
+  GopherJS programs execute in Web Workers, and we have implemented
+  the `syscall` package.  System calls result in async messages sent
+  to the Browsix kernel, and when responses are received the goroutine
+  is resumed as expected.**
+
 [![Circle CI](https://circleci.com/gh/gopherjs/gopherjs.svg?style=svg)](https://circleci.com/gh/gopherjs/gopherjs)
 
 GopherJS compiles Go code ([golang.org](https://golang.org/)) to pure JavaScript code. Its main purpose is to give you the opportunity to write front-end code in Go which will still run in all browsers. Give GopherJS a try on the [GopherJS Playground](http://gopherjs.github.io/playground/).
