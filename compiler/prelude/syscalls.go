@@ -118,6 +118,11 @@ var USyscalls = (function () {
         };
         this.post(msgId, 'exit', code);
     };
+    USyscalls.prototype.fork = function (heap, cb) {
+        var msgId = this.nextMsgId();
+        this.outstanding[msgId] = cb;
+        this.post(msgId, 'fork', heap);
+    };
     USyscalls.prototype.kill = function (pid, cb) {
         var msgId = this.nextMsgId();
         this.outstanding[msgId] = cb;
@@ -148,10 +153,10 @@ var USyscalls = (function () {
         this.outstanding[msgId] = cb;
         this.post(msgId, 'accept', fd);
     };
-    USyscalls.prototype.connect = function (fd, addr, port, cb) {
+    USyscalls.prototype.connect = function (fd, addr, cb) {
         var msgId = this.nextMsgId();
         this.outstanding[msgId] = cb;
-        this.post(msgId, 'connect', fd, addr, port);
+        this.post(msgId, 'connect', fd, addr);
     };
     USyscalls.prototype.getcwd = function (cb) {
         var msgId = this.nextMsgId();
@@ -162,6 +167,11 @@ var USyscalls = (function () {
         var msgId = this.nextMsgId();
         this.outstanding[msgId] = cb;
         this.post(msgId, 'getpid');
+    };
+    USyscalls.prototype.getppid = function (cb) {
+        var msgId = this.nextMsgId();
+        this.outstanding[msgId] = cb;
+        this.post(msgId, 'getppid');
     };
     USyscalls.prototype.spawn = function (cwd, name, args, env, files, cb) {
         var msgId = this.nextMsgId();
@@ -433,7 +443,13 @@ function sys_getpid(cb, trap) {
     var done = function (err, pid) {
         cb([pid, 0, 0]);
     };
-    syscall_1.syscall.getpid.apply(syscall_1.syscall, [done]);
+    syscall_1.syscall.getpid(done);
+}
+function sys_getppid(cb, trap) {
+    var done = function (err, pid) {
+        cb([pid, 0, 0]);
+    };
+    syscall_1.syscall.getppid(done);
 }
 var zeroBuf = new Uint8Array(0);
 function sys_spawn(cb, trap, dir, argv0, argv, envv, fds) {
@@ -446,7 +462,7 @@ function sys_spawn(cb, trap, dir, argv0, argv, envv, fds) {
     var done = function (err, pid) {
         cb([err ? -1 : pid, 0, err ? err : 0]);
     };
-    syscall_1.syscall.spawn.apply(syscall_1.syscall, [dir, argv0, argv, envv, fds, done]);
+    syscall_1.syscall.spawn(dir, argv0, argv, envv, fds, done);
 }
 function sys_pipe2(cb, trap, fds, flags) {
     var done = function (err, fd1, fd2) {
@@ -458,173 +474,154 @@ function sys_pipe2(cb, trap, fds, flags) {
     };
     syscall_1.syscall.pipe2(flags, done);
 }
-function sys_getcwd(cb, trap, arg0, arg1, arg2) {
-    var $getcwdArray = arg0;
-    var $getcwdLen = arg1;
+function sys_getcwd(cb, trap, path, len) {
     var done = function (p) {
-        $getcwdArray.set(p);
-        var nullPos = p.byteLength;
-        if (nullPos >= $getcwdArray.byteLength)
-            nullPos = $getcwdArray.byteLength;
-        $getcwdArray[nullPos] = 0;
+        path.subarray(0, len).set(p);
+        var nullPos = p.length;
+        if (nullPos >= path.byteLength)
+            nullPos = path.byteLength;
+        path[nullPos] = 0;
         cb([p.length + 1, 0, 0]);
     };
-    syscall_1.syscall.getcwd.apply(syscall_1.syscall, [done]);
+    syscall_1.syscall.getcwd(done);
 }
-function sys_ioctl(cb, trap, arg0, arg1, arg2) {
-    var $fd = arg0;
-    var $request = arg1;
-    var $argp = arg2;
+function sys_ioctl(cb, trap, fd, request, argp) {
     var done = function (err, buf) {
-        if (!err && $argp.byteLength !== undefined)
-            $argp.set(buf);
+        if (!err && argp.byteLength !== undefined)
+            argp.set(buf);
         cb([err ? err : buf.byteLength, 0, err ? -1 : 0]);
     };
-    syscall_1.syscall.ioctl.apply(syscall_1.syscall, [$fd, $request, $argp.byteLength, done]);
+    syscall_1.syscall.ioctl(fd, request, argp.byteLength, done);
 }
-function sys_getdents64(cb, trap, arg0, arg1, arg2) {
-    var $fd = arg0;
-    var $buf = arg1;
-    var $len = arg2;
-    var done = function (err, buf) {
+function sys_getdents64(cb, trap, fd, buf, len) {
+    var done = function (err, dents) {
         if (!err)
-            $buf.set(buf);
-        cb([err ? -1 : buf.byteLength, 0, err ? -1 : 0]);
+            buf.set(dents);
+        cb([err ? -1 : dents.byteLength, 0, err ? -1 : 0]);
     };
-    syscall_1.syscall.getdents.apply(syscall_1.syscall, [$fd, $len, done]);
+    syscall_1.syscall.getdents(fd, len, done);
 }
-function sys_read(cb, trap, arg0, arg1, arg2) {
-    var $readArray = arg1;
-    var $readLen = arg2;
+function sys_read(cb, trap, fd, readArray, readLen) {
     var done = function (err, dataLen, data) {
         if (!err) {
             for (var i = 0; i < dataLen; i++)
-                $readArray[i] = data[i];
+                readArray[i] = data[i];
         }
         cb([dataLen, 0, err ? -1 : 0]);
     };
-    syscall_1.syscall.pread.apply(syscall_1.syscall, [arg0, arg2, -1, done]);
+    syscall_1.syscall.pread(fd, readLen, -1, done);
 }
-function sys_write(cb, trap, arg0, arg1, arg2) {
+function sys_write(cb, trap, fd, buf, blen) {
     var done = function (err, len) {
         cb([len, 0, err ? -1 : 0]);
     };
-    syscall_1.syscall.pwrite.apply(syscall_1.syscall, [arg0, new Uint8Array(arg1, 0, arg2), 0, done]);
+    syscall_1.syscall.pwrite(fd, new Uint8Array(buf, 0, blen), 0, done);
 }
-function sys_stat(cb, trap, arg0, arg1) {
-    var $fstatArray = arg1;
+function sys_stat(cb, trap, path, buf) {
     var done = function (err, stats) {
         if (!err)
-            $fstatArray.set(stats);
+            buf.set(stats);
         cb([err ? -1 : 0, 0, err ? -1 : 0]);
     };
-    var len = arg0.length;
-    if (len && arg0[arg0.length - 1] === 0)
+    var len = path.length;
+    if (len && path[path.length - 1] === 0)
         len--;
-    syscall_1.syscall.stat.apply(syscall_1.syscall, [arg0.slice(0, len), done]);
+    syscall_1.syscall.stat(path.subarray(0, len), done);
 }
-function sys_lstat(cb, trap, arg0, arg1) {
-    var $fstatArray = arg1;
+function sys_lstat(cb, trap, path, buf) {
     var done = function (err, stats) {
         if (!err)
-            $fstatArray.set(stats);
+            buf.set(stats);
         cb([err ? -1 : 0, 0, err ? -1 : 0]);
     };
-    var len = arg0.length;
-    if (len && arg0[arg0.length - 1] === 0)
+    var len = path.length;
+    if (len && path[path.length - 1] === 0)
         len--;
-    syscall_1.syscall.lstat.apply(syscall_1.syscall, [arg0.slice(0, len), done]);
+    syscall_1.syscall.lstat(path.subarray(0, len), done);
 }
-function sys_fstat(cb, trap, arg0, arg1) {
-    var $fstatArray = arg1;
+function sys_fstat(cb, trap, fd, buf) {
     var done = function (err, stats) {
         if (!err)
-            $fstatArray.set(stats);
+            buf.set(stats);
         cb([err ? -1 : 0, 0, err ? -1 : 0]);
     };
-    syscall_1.syscall.fstat.apply(syscall_1.syscall, [arg0, done]);
+    syscall_1.syscall.fstat(fd, done);
 }
-function sys_readlinkat(cb, trap, arg0, arg1, arg2, arg3) {
-    var $fd = arg0 | 0;
-    var $path = arg1;
-    var $buf = arg2;
-    var $buflen = arg3;
-    if ((arg0 | 0) !== AT_FDCWD) {
-        debugger;
+function sys_readlinkat(cb, trap, fd, path, buf, blen) {
+    if (fd !== AT_FDCWD) {
+        console.log('openat: TODO: we only support AT_FDCWD');
         setTimeout(cb, 0, [-1, 0, -1]);
         return;
     }
     var done = function (err, linkString) {
         if (!err)
-            $buf.set(linkString);
+            buf.set(linkString);
         cb([err ? -1 : linkString.length, 0, err ? -1 : 0]);
     };
-    var len = $path.length;
-    if (len && arg1[$path.length - 1] === 0)
+    var len = path.length;
+    if (len && path[path.length - 1] === 0)
         len--;
-    syscall_1.syscall.readlink.apply(syscall_1.syscall, [$path.slice(0, len), done]);
+    syscall_1.syscall.readlink(path.subarray(0, len), done);
 }
-function sys_openat(cb, trap, arg0, arg1, arg2, arg3) {
-    if ((arg0 | 0) !== AT_FDCWD) {
-        debugger;
+function sys_openat(cb, trap, fd, path, flags, mode) {
+    fd = fd | 0;
+    if (fd !== AT_FDCWD) {
+        console.log('openat: TODO: we only support AT_FDCWD');
         setTimeout(cb, 0, [-1, 0, -1]);
         return;
     }
     var done = function (err, fd) {
         cb([fd, 0, err ? -1 : 0]);
     };
-    var len = arg1.length;
-    if (len && arg1[arg1.length - 1] === 0)
+    var len = path.length;
+    if (len && path[path.length - 1] === 0)
         len--;
-    syscall_1.syscall.open.apply(syscall_1.syscall, [arg1.slice(0, len), arg2, arg3, done]);
+    syscall_1.syscall.open(path.subarray(0, len), flags, mode, done);
 }
-function sys_close(cb, trap, arg0) {
+function sys_close(cb, trap, fd) {
     var done = function (err) {
         cb([err ? -1 : 0, 0, err ? -1 : 0]);
     };
-    syscall_1.syscall.close.apply(syscall_1.syscall, [arg0, done]);
+    syscall_1.syscall.close(fd, done);
 }
-function sys_exit_group(cb, trap, arg0) {
-    syscall_1.syscall.exit(arg0);
+function sys_exit_group(cb, trap, code) {
+    syscall_1.syscall.exit(code);
 }
-function sys_socket(cb, trap, arg0, arg1, arg2) {
+function sys_socket(cb, trap, domain, type, protocol) {
     var done = function (err, fd) {
         cb([err ? -1 : fd, 0, err ? -1 : 0]);
     };
-    syscall_1.syscall.socket(arg0, arg1, arg2, done);
+    syscall_1.syscall.socket(domain, type, protocol, done);
 }
-function sys_bind(cb, trap, arg0, arg1, arg2) {
-    console.log('FIXME: unmarshal');
+function sys_bind(cb, trap, fd, buf, blen) {
     var done = function (err) {
         cb([err ? -1 : 0, 0, err ? -1 : 0]);
     };
-    syscall_1.syscall.bind(arg0, arg1.slice(0, arg2), done);
+    syscall_1.syscall.bind(fd, buf.subarray(0, blen), done);
 }
-function sys_listen(cb, trap, arg0, arg1) {
+function sys_listen(cb, trap, fd, backlog) {
     var done = function (err) {
         cb([err ? -1 : 0, 0, err ? -1 : 0]);
     };
-    syscall_1.syscall.listen(arg0, arg1, done);
+    syscall_1.syscall.listen(fd, backlog, done);
 }
-function sys_getsockname(cb, trap, arg0, arg1, arg2) {
-    var done = function (err, buf) {
+function sys_getsockname(cb, trap, fd, buf, lenp) {
+    var done = function (err, sockInfo) {
         if (!err) {
-            arg1.set(buf);
-            arg2.$set(buf.byteLength);
+            buf.set(sockInfo);
+            lenp.$set(sockInfo.byteLength);
         }
         cb([err ? -1 : 0, 0, err ? -1 : 0]);
     };
-    syscall_1.syscall.getsockname(arg0, done);
+    syscall_1.syscall.getsockname(fd, done);
 }
-function sys_accept4(cb, trap, arg0, arg1, arg2) {
-    var $acceptArray = arg1;
-    var $acceptLen = arg2;
+function sys_accept4(cb, trap, fd, buf, lenp) {
     var done = function (err, fd, sockInfo) {
-        $acceptArray.set(sockInfo);
-        $acceptLen.$set(sockInfo.length);
+        buf.set(sockInfo);
+        lenp.$set(sockInfo.length);
         cb([err ? -1 : fd, 0, err ? -1 : 0]);
     };
-    syscall_1.syscall.accept(arg0, done);
+    syscall_1.syscall.accept(fd, done);
 }
 function sys_setsockopt(cb, trap) {
     console.log('FIXME: implement setsockopt');
@@ -741,7 +738,7 @@ exports.syscallTbl = [
     sys_ni_syscall,
     sys_ni_syscall,
     sys_ni_syscall,
-    sys_ni_syscall,
+    sys_getppid,
     sys_ni_syscall,
     sys_ni_syscall,
     sys_ni_syscall,
