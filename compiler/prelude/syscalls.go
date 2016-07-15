@@ -70,7 +70,7 @@ var ApiError = (function () {
         return this.code + ": " + fsErrors[this.code] + " " + this.message;
     };
     return ApiError;
-})();
+}());
 exports.ApiError = ApiError;
 function convertApiErrors(e) {
     if (!e)
@@ -97,7 +97,7 @@ var SyscallResponse = (function () {
     };
     SyscallResponse.requiredOnData = ['id', 'name', 'args'];
     return SyscallResponse;
-})();
+}());
 exports.SyscallResponse = SyscallResponse;
 var USyscalls = (function () {
     function USyscalls(port) {
@@ -326,7 +326,7 @@ var USyscalls = (function () {
         });
     };
     return USyscalls;
-})();
+}());
 exports.USyscalls = USyscalls;
 function getGlobal() {
     if (typeof window !== "undefined") {
@@ -387,7 +387,7 @@ var OnceEmitter = (function () {
         }
     };
     return OnceEmitter;
-})();
+}());
 var Process = (function (_super) {
     __extends(Process, _super);
     function Process(argv, environ) {
@@ -400,7 +400,7 @@ var Process = (function (_super) {
         syscall_1.syscall.exit(code);
     };
     return Process;
-})(OnceEmitter);
+}(OnceEmitter));
 var process = new Process(null, null);
 syscall_1.syscall.addEventListener('init', init.bind(this));
 function init(data) {
@@ -495,9 +495,9 @@ function sys_ioctl(cb, trap, fd, request, argp) {
 }
 function sys_getdents64(cb, trap, fd, buf, len) {
     var done = function (err, dents) {
-        if (!err)
+        if (dents)
             buf.set(dents);
-        cb([err ? -1 : dents.byteLength, 0, err ? -1 : 0]);
+        cb([err, 0, err < 0 ? -1 : 0]);
     };
     syscall_1.syscall.getdents(fd, len, done);
 }
