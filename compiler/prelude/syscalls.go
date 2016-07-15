@@ -515,7 +515,7 @@ function sys_write(cb, trap, fd, buf, blen) {
     var done = function (err, len) {
         cb([len, 0, err ? -1 : 0]);
     };
-    syscall_1.syscall.pwrite(fd, new Uint8Array(buf, 0, blen), 0, done);
+    syscall_1.syscall.pwrite(fd, new Uint8Array(buf, 0, blen), -1, done);
 }
 function sys_stat(cb, trap, path, buf) {
     var done = function (err, stats) {
