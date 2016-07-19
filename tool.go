@@ -495,7 +495,7 @@ func main() {
 					return nil
 				}
 			}
-			cmdTool.Help()
+			cmdTool.HelpFunc()(cmd, args)
 			return nil
 		}, options, nil))
 	}
@@ -517,7 +517,7 @@ func main() {
 		var root string
 
 		if len(args) > 1 {
-			cmdServe.Help()
+			cmdServe.HelpFunc()(cmd, args)
 			return
 		}
 
