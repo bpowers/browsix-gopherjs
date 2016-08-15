@@ -624,7 +624,6 @@ function sys_accept4(cb, trap, fd, buf, lenp) {
     syscall_1.syscall.accept(fd, done);
 }
 function sys_setsockopt(cb, trap) {
-    console.log('FIXME: implement setsockopt');
     setTimeout(cb, 0, [0, 0, 0]);
 }
 exports.syscallTbl = [
