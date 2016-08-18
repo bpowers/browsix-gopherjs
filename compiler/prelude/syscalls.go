@@ -128,6 +128,11 @@ var USyscalls = (function () {
         this.outstanding[msgId] = cb;
         this.post(msgId, 'kill', pid);
     };
+    USyscalls.prototype.wait4 = function (pid, options, cb) {
+        var msgId = this.nextMsgId();
+        this.outstanding[msgId] = cb;
+        this.post(msgId, 'wait4', pid, options);
+    };
     USyscalls.prototype.socket = function (domain, type, protocol, cb) {
         var msgId = this.nextMsgId();
         this.outstanding[msgId] = cb;
@@ -443,7 +448,15 @@ function sys_ni_syscall(cb, trap) {
     debugger;
     setTimeout(cb, 0, [-1, 0, -ENOSYS]);
 }
-var sys_wait4 = sys_ni_syscall;
+function sys_wait4(cb, trap, pid, wstatus, options, rusage) {
+    var done = function (pid, wstatusIn, rusage) {
+        if (rusage === void 0) { rusage = null; }
+        if (pid > 0)
+            wstatus.$set(wstatusIn);
+        cb([pid, 0, 0]);
+    };
+    syscall_1.syscall.wait4(pid, options, done);
+}
 function sys_getpid(cb, trap) {
     var done = function (err, pid) {
         cb([pid, 0, 0]);
