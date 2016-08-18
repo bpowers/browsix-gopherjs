@@ -248,6 +248,11 @@ var USyscalls = (function () {
         this.outstanding[msgId] = cb;
         this.post(msgId, 'lstat', path);
     };
+    USyscalls.prototype.chdir = function (path, cb) {
+        var msgId = this.nextMsgId();
+        this.outstanding[msgId] = cb;
+        this.post(msgId, 'chdir', path);
+    };
     USyscalls.prototype.stat = function (path, cb) {
         var msgId = this.nextMsgId();
         this.outstanding[msgId] = cb;
@@ -485,6 +490,15 @@ function sys_getcwd(cb, trap, path, len) {
     };
     syscall_1.syscall.getcwd(done);
 }
+function sys_chdir(cb, trap, path) {
+    var done = function (err) {
+        cb([err ? -1 : 0, 0, err ? -err : 0]);
+    };
+    var len = path.length;
+    if (len && path[path.length - 1] === 0)
+        len--;
+    syscall_1.syscall.chdir(path.subarray(0, len), done);
+}
 function sys_ioctl(cb, trap, fd, request, argp) {
     var done = function (err, buf) {
         if (!err && argp.byteLength !== undefined)
@@ -707,7 +721,7 @@ exports.syscallTbl = [
     sys_ni_syscall,
     sys_ni_syscall,
     sys_getcwd,
-    sys_ni_syscall,
+    sys_chdir,
     sys_ni_syscall,
     sys_ni_syscall,
     sys_ni_syscall,
