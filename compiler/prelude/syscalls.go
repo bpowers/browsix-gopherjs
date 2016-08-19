@@ -123,10 +123,10 @@ var USyscalls = (function () {
         this.outstanding[msgId] = cb;
         this.post(msgId, 'fork', heap);
     };
-    USyscalls.prototype.kill = function (pid, cb) {
+    USyscalls.prototype.kill = function (pid, sig, cb) {
         var msgId = this.nextMsgId();
         this.outstanding[msgId] = cb;
-        this.post(msgId, 'kill', pid);
+        this.post(msgId, 'kill', pid, sig);
     };
     USyscalls.prototype.wait4 = function (pid, options, cb) {
         var msgId = this.nextMsgId();
@@ -462,6 +462,12 @@ function sys_wait4(cb, trap, pid, wstatus, options, rusage) {
     };
     syscall_1.syscall.wait4(pid, options, done);
 }
+function sys_kill(cb, trap, pid, sig) {
+    var done = function (err) {
+        cb([err ? -1 : 0, 0, err ? -err : 0]);
+    };
+    syscall_1.syscall.kill(pid, sig, done);
+}
 function sys_getpid(cb, trap) {
     var done = function (err, pid) {
         cb([pid, 0, 0]);
@@ -737,7 +743,7 @@ exports.syscallTbl = [
     sys_ni_syscall,
     sys_ni_syscall,
     sys_wait4,
-    sys_ni_syscall,
+    sys_kill,
     sys_ni_syscall,
     sys_ni_syscall,
     sys_ni_syscall,
