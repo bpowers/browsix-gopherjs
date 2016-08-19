@@ -1053,7 +1053,6 @@ func (c *funcContext) translateConversion(expr ast.Expr, desiredType types.Type)
 					target := c.newVariable("_struct")
 					c.Printf("%s = new Uint8Array(%d);", array, sizes32.Sizeof(s))
 					if c.inReturn {
-						fmt.Fprintf(os.Stderr, "should convert struct, NOT load\n")
 						c.Printf("/* in unsafe.Pointer converting */")
 						c.Printf("%s = %s, %s;", target, c.translateExpr(expr), c.storeFromStruct(array, target, s))
 					} else {
