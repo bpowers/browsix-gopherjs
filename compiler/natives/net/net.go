@@ -3,7 +3,6 @@
 package net
 
 import (
-	"errors"
 	"syscall"
 
 	"github.com/bpowers/browsix-gopherjs/js"
@@ -76,7 +75,29 @@ func Listen(net, laddr string) (Listener, error) {
 }
 
 func (d *Dialer) Dial(network, address string) (Conn, error) {
-	panic(errors.New("network access is not supported by GopherJS"))
+	family, sotype := syscall.AF_INET, syscall.SOCK_STREAM
+
+	raddr, err := ResolveTCPAddr("tcp4", address)
+	if err != nil {
+		return nil, err
+	}
+
+	s, err := syscall.Socket(family, sotype, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	fd, err := newFD(s, family, sotype, "tcp")
+	if err != nil {
+		return nil, err
+	}
+
+	if err := fd.dial(nil, raddr, noDeadline, noCancel); err != nil {
+		fd.Close()
+		return nil, err
+	}
+
+	return newTCPConn(fd), nil
 }
 
 func sysInit() {
