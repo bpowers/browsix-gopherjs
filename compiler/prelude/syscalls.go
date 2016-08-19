@@ -143,6 +143,11 @@ var USyscalls = (function () {
         this.outstanding[msgId] = cb;
         this.post(msgId, 'getsockname', fd);
     };
+    USyscalls.prototype.getpeername = function (fd, cb) {
+        var msgId = this.nextMsgId();
+        this.outstanding[msgId] = cb;
+        this.post(msgId, 'getpeername', fd);
+    };
     USyscalls.prototype.bind = function (fd, sockInfo, cb) {
         var msgId = this.nextMsgId();
         this.outstanding[msgId] = cb;
@@ -632,6 +637,12 @@ function sys_listen(cb, trap, fd, backlog) {
     };
     syscall_1.syscall.listen(fd, backlog, done);
 }
+function sys_connect(cb, trap, fd, buf, blen) {
+    var done = function (err) {
+        cb([err ? -1 : 0, 0, err ? -1 : 0]);
+    };
+    syscall_1.syscall.connect(fd, buf.subarray(0, blen), done);
+}
 function sys_getsockname(cb, trap, fd, buf, lenp) {
     var done = function (err, sockInfo) {
         if (!err) {
@@ -641,6 +652,16 @@ function sys_getsockname(cb, trap, fd, buf, lenp) {
         cb([err ? -1 : 0, 0, err ? -1 : 0]);
     };
     syscall_1.syscall.getsockname(fd, done);
+}
+function sys_getpeername(cb, trap, fd, buf, lenp) {
+    var done = function (err, sockInfo) {
+        if (!err) {
+            buf.set(sockInfo);
+            lenp.$set(sockInfo.byteLength);
+        }
+        cb([err ? -1 : 0, 0, err ? -1 : 0]);
+    };
+    syscall_1.syscall.getpeername(fd, done);
 }
 function sys_accept4(cb, trap, fd, buf, lenp) {
     var done = function (err, fd, sockInfo) {
@@ -696,7 +717,7 @@ exports.syscallTbl = [
     sys_getpid,
     sys_ni_syscall,
     sys_socket,
-    sys_ni_syscall,
+    sys_connect,
     sys_ni_syscall,
     sys_ni_syscall,
     sys_ni_syscall,
@@ -706,7 +727,7 @@ exports.syscallTbl = [
     sys_bind,
     sys_listen,
     sys_getsockname,
-    sys_ni_syscall,
+    sys_getpeername,
     sys_ni_syscall,
     sys_setsockopt,
     sys_ni_syscall,
