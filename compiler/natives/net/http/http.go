@@ -13,7 +13,7 @@ import (
 	"github.com/bpowers/browsix-gopherjs/js"
 )
 
-var DefaultTransport RoundTripper = &XHRTransport{}
+//var DefaultTransport RoundTripper = &XHRTransport{}
 
 type XHRTransport struct {
 	inflight map[*Request]*js.Object
