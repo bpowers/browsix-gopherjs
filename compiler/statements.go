@@ -8,6 +8,8 @@ import (
 	"go/types"
 	"strings"
 
+	"os"
+
 	"github.com/bpowers/browsix-gopherjs/compiler/analysis"
 	"github.com/bpowers/browsix-gopherjs/compiler/astutil"
 	"github.com/bpowers/browsix-gopherjs/compiler/filter"
@@ -734,6 +736,10 @@ func (c *funcContext) translateAssign(lhs, rhs ast.Expr, define bool) string {
 }
 
 func (c *funcContext) translateResults(results []ast.Expr) string {
+	c.inReturn = true
+	defer func() {
+		c.inReturn = false
+	}()
 	tuple := c.sig.Results()
 	switch tuple.Len() {
 	case 0:
@@ -744,7 +750,9 @@ func (c *funcContext) translateResults(results []ast.Expr) string {
 			result = results[0]
 		}
 		v := c.translateImplicitConversion(result, tuple.At(0).Type())
-		c.delayedOutput = nil
+		if c.delayedOutput != nil {
+			fmt.Fprintf(os.Stderr, "WARNING: discarded delayed output(1): %s\n", string(c.delayedOutput))
+		}
 		return " " + v.String()
 	default:
 		if len(results) == 1 {
@@ -758,7 +766,9 @@ func (c *funcContext) translateResults(results []ast.Expr) string {
 			}
 			values[i] = c.translateImplicitConversion(result, tuple.At(i).Type()).String()
 		}
-		c.delayedOutput = nil
+		if c.delayedOutput != nil {
+			fmt.Fprintf(os.Stderr, "WARNING: discarded delayed output(2): %s\n", string(c.delayedOutput))
+		}
 		return " [" + strings.Join(values, ", ") + "]"
 	}
 }

@@ -82,6 +82,7 @@ type funcContext struct {
 	delayedOutput []byte
 	posAvailable  bool
 	pos           token.Pos
+	inReturn      bool
 }
 
 type flowData struct {

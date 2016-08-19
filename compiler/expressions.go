@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 
+	"os"
+
 	"github.com/bpowers/browsix-gopherjs/compiler/analysis"
 	"github.com/bpowers/browsix-gopherjs/compiler/astutil"
 	"github.com/bpowers/browsix-gopherjs/compiler/typesutil"
@@ -1036,14 +1038,30 @@ func (c *funcContext) translateConversion(expr ast.Expr, desiredType types.Type)
 					return c.formatExpr("new Uint8Array(0)")
 				}
 			}
+			// this is needed for cases like Fstat, where
+			// we take a pointer to a stat object, convert
+			// it to unsafe, pass that to Syscall(), and
+			// take the syscall result and stick it back
+			// in the original pointed-to object.
+			//
+			// It currently _fails_ for cases like
+			// SockaddrInet4.sockaddr() where we return an
+			// unsafe.Pointer from the function.
 			if ptr, isPtr := c.p.TypeOf(expr).(*types.Pointer); c.p.Pkg.Path() == "syscall" && isPtr {
 				if s, isStruct := ptr.Elem().Underlying().(*types.Struct); isStruct {
 					array := c.newVariable("_array")
 					target := c.newVariable("_struct")
 					c.Printf("%s = new Uint8Array(%d);", array, sizes32.Sizeof(s))
-					c.Delayed(func() {
-						c.Printf("%s = %s, %s;", target, c.translateExpr(expr), c.loadStruct(array, target, s))
-					})
+					if c.inReturn {
+						fmt.Fprintf(os.Stderr, "should convert struct, NOT load\n")
+						c.Printf("/* in unsafe.Pointer converting */")
+						c.Printf("%s = %s, %s;", target, c.translateExpr(expr), c.storeFromStruct(array, target, s))
+					} else {
+						c.Printf("/* in unsafe.Pointer loading */")
+						c.Delayed(func() {
+							c.Printf("%s = %s, %s;", target, c.translateExpr(expr), c.loadStruct(array, target, s))
+						})
+					}
 					return c.formatExpr("%s", array)
 				}
 			}
@@ -1152,6 +1170,40 @@ func (c *funcContext) translateConversionToSlice(expr ast.Expr, desiredType type
 }
 
 func (c *funcContext) loadStruct(array, target string, s *types.Struct) string {
+	view := c.newVariable("_view")
+	code := fmt.Sprintf("%s = new DataView(%s.buffer, %s.byteOffset)", view, array, array)
+	var fields []*types.Var
+	var collectFields func(s *types.Struct, path string)
+	collectFields = func(s *types.Struct, path string) {
+		for i := 0; i < s.NumFields(); i++ {
+			field := s.Field(i)
+			if fs, isStruct := field.Type().Underlying().(*types.Struct); isStruct {
+				collectFields(fs, path+"."+fieldName(s, i))
+				continue
+			}
+			fields = append(fields, types.NewVar(0, nil, path+"."+fieldName(s, i), field.Type()))
+		}
+	}
+	collectFields(s, target)
+	offsets := sizes32.Offsetsof(fields)
+	for i, field := range fields {
+		switch t := field.Type().Underlying().(type) {
+		case *types.Basic:
+			if isNumeric(t) {
+				if is64Bit(t) {
+					code += fmt.Sprintf(", %s = new %s(%s.getUint32(%d, true), %s.getUint32(%d, true))", field.Name(), c.typeName(field.Type()), view, offsets[i]+4, view, offsets[i])
+					break
+				}
+				code += fmt.Sprintf(", %s = %s.get%s(%d, true)", field.Name(), view, toJavaScriptType(t), offsets[i])
+			}
+		case *types.Array:
+			code += fmt.Sprintf(`, %s = new ($nativeArray(%s))(%s.buffer, $min(%s.byteOffset + %d, %s.buffer.byteLength))`, field.Name(), typeKind(t.Elem()), array, array, offsets[i], array)
+		}
+	}
+	return code
+}
+
+func (c *funcContext) storeFromStruct(array, target string, s *types.Struct) string {
 	view := c.newVariable("_view")
 	code := fmt.Sprintf("%s = new DataView(%s.buffer, %s.byteOffset)", view, array, array)
 	var fields []*types.Var
