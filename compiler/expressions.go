@@ -11,8 +11,6 @@ import (
 	"strconv"
 	"strings"
 
-	"os"
-
 	"github.com/bpowers/browsix-gopherjs/compiler/analysis"
 	"github.com/bpowers/browsix-gopherjs/compiler/astutil"
 	"github.com/bpowers/browsix-gopherjs/compiler/typesutil"
