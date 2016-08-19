@@ -3,6 +3,7 @@
 package net
 
 import (
+	"strings"
 	"syscall"
 
 	"github.com/bpowers/browsix-gopherjs/js"
@@ -44,6 +45,10 @@ func listenBrowsix(net, laddr string) (Listener, error) {
 	// FIXME: currently only support stream sockets
 	family, sotype := syscall.AF_INET, syscall.SOCK_STREAM
 
+	if parts := strings.SplitN(laddr, ":", 2); len(parts) == 2 && parts[0] == "localhost" {
+		laddr = "127.0.0.1:" + parts[1]
+	}
+
 	addr, err := ResolveTCPAddr("tcp4", laddr)
 	if err != nil {
 		return nil, err
@@ -76,6 +81,10 @@ func Listen(net, laddr string) (Listener, error) {
 
 func (d *Dialer) Dial(network, address string) (Conn, error) {
 	family, sotype := syscall.AF_INET, syscall.SOCK_STREAM
+
+	if parts := strings.SplitN(address, ":", 2); len(parts) == 2 && parts[0] == "localhost" {
+		address = "127.0.0.1:" + parts[1]
+	}
 
 	raddr, err := ResolveTCPAddr("tcp4", address)
 	if err != nil {
