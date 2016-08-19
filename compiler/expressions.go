@@ -1225,13 +1225,15 @@ func (c *funcContext) storeFromStruct(array, target string, s *types.Struct) str
 		case *types.Basic:
 			if isNumeric(t) {
 				if is64Bit(t) {
-					code += fmt.Sprintf(", %s = new %s(%s.getUint32(%d, true), %s.getUint32(%d, true))", field.Name(), c.typeName(field.Type()), view, offsets[i]+4, view, offsets[i])
+					code += fmt.Sprintf(", %s.setUint32(%d, %s.$low >>> 0, true), %s.setUint32(%d, $shiftRightUint64(b, 32).$low >>> 0, true))",
+						view, offsets[i]+4, field.Name(), view, offsets[i], field.Name())
 					break
 				}
-				code += fmt.Sprintf(", %s = %s.get%s(%d, true)", field.Name(), view, toJavaScriptType(t), offsets[i])
+				code += fmt.Sprintf(", %s.set%s(%d, %s, true)", view, toJavaScriptType(t), offsets[i], field.Name())
 			}
 		case *types.Array:
-			code += fmt.Sprintf(`, %s = new ($nativeArray(%s))(%s.buffer, $min(%s.byteOffset + %d, %s.buffer.byteLength))`, field.Name(), typeKind(t.Elem()), array, array, offsets[i], array)
+			code += fmt.Sprintf(`, %s.subarray(%s.byteOffset + %d, %s.byteOffset + %d + %s.byteLength).set(%s)`,
+				array, array, offsets[i], array, offsets[i], field.Name(), field.Name())
 		}
 	}
 	return code
