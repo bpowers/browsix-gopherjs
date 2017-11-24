@@ -54,6 +54,13 @@ func init() {
 		fmt.Fprintf(os.Stderr, "$GOPATH not set. For more details see: go help gopath\n")
 		os.Exit(1)
 	}
+
+	/* 
+	This is needed for now to ensure that the syscall numbers work
+	correctly for Browsix 
+	*/
+
+	build.Default.GOOS = "linux"
 }
 
 func main() {
