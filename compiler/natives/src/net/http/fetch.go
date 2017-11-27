@@ -9,7 +9,7 @@ import (
 	"io/ioutil"
 	"strconv"
 
-	"github.com/gopherjs/gopherjs/js"
+	"github.com/bpowers/browsix-gopherjs/js"
 )
 
 // streamReader implements an io.ReadCloser wrapper for ReadableStream of https://fetch.spec.whatwg.org/.

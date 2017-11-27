@@ -43,7 +43,7 @@ func TestNativesDontImportExtraPackages(t *testing.T) {
 			(*set)[p] = struct{}{}
 			switch p {
 			case "sync":
-				(*set)["github.com/gopherjs/gopherjs/nosync"] = struct{}{}
+				(*set)["github.com/bpowers/browsix-gopherjs/nosync"] = struct{}{}
 			}
 			transitiveImports := forward.Search(p)
 			for p := range transitiveImports {
@@ -61,7 +61,7 @@ func TestNativesDontImportExtraPackages(t *testing.T) {
 	// That list of direct imports is then expanded to the transitive closure by populateImportSet,
 	// meaning all packages that are indirectly imported are also added to the set.
 	//
-	// Then, github.com/gopherjs/gopherjs/build.parseAndAugment(*build.Package) returns []*ast.File.
+	// Then, github.com/bpowers/browsix-gopherjs/build.parseAndAugment(*build.Package) returns []*ast.File.
 	// Those augmented parsed Go files of the package are checked, one file at at time, one import
 	// at a time. Each import is verified to belong in the set of allowed real imports.
 	for _, pkg := range gotool.ImportPaths([]string{"std"}) {
@@ -79,7 +79,7 @@ func TestNativesDontImportExtraPackages(t *testing.T) {
 			fset := token.NewFileSet()
 			files, err := parseAndAugment(bpkg, false, fset)
 			if err != nil {
-				t.Fatalf("github.com/gopherjs/gopherjs/build.parseAndAugment: %v", err)
+				t.Fatalf("github.com/bpowers/browsix-gopherjs/build.parseAndAugment: %v", err)
 			}
 
 			// Verify imports of normal augmented AST files.
@@ -94,7 +94,7 @@ func TestNativesDontImportExtraPackages(t *testing.T) {
 					if err != nil {
 						t.Fatalf("strconv.Unquote(%v): %v", imp.Path.Value, err)
 					}
-					if importPath == "github.com/gopherjs/gopherjs/js" {
+					if importPath == "github.com/bpowers/browsix-gopherjs/js" {
 						continue
 					}
 					if _, ok := realImports[importPath]; !ok {
@@ -118,7 +118,7 @@ func TestNativesDontImportExtraPackages(t *testing.T) {
 			fset := token.NewFileSet()
 			files, err := parseAndAugment(bpkg, true, fset)
 			if err != nil {
-				t.Fatalf("github.com/gopherjs/gopherjs/build.parseAndAugment: %v", err)
+				t.Fatalf("github.com/bpowers/browsix-gopherjs/build.parseAndAugment: %v", err)
 			}
 
 			// Verify imports of test augmented AST files.
@@ -133,7 +133,7 @@ func TestNativesDontImportExtraPackages(t *testing.T) {
 					if err != nil {
 						t.Fatalf("strconv.Unquote(%v): %v", imp.Path.Value, err)
 					}
-					if importPath == "github.com/gopherjs/gopherjs/js" {
+					if importPath == "github.com/bpowers/browsix-gopherjs/js" {
 						continue
 					}
 					if _, ok := realTestImports[importPath]; !ok {
@@ -160,7 +160,7 @@ func TestNativesDontImportExtraPackages(t *testing.T) {
 			fset := token.NewFileSet()
 			files, err := parseAndAugment(bpkg, true, fset)
 			if err != nil {
-				t.Fatalf("github.com/gopherjs/gopherjs/build.parseAndAugment: %v", err)
+				t.Fatalf("github.com/bpowers/browsix-gopherjs/build.parseAndAugment: %v", err)
 			}
 
 			// Verify imports of external test augmented AST files.
@@ -175,7 +175,7 @@ func TestNativesDontImportExtraPackages(t *testing.T) {
 					if err != nil {
 						t.Fatalf("strconv.Unquote(%v): %v", imp.Path.Value, err)
 					}
-					if importPath == "github.com/gopherjs/gopherjs/js" {
+					if importPath == "github.com/bpowers/browsix-gopherjs/js" {
 						continue
 					}
 					if _, ok := realXTestImports[importPath]; !ok {

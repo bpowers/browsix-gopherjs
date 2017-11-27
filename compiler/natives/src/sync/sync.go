@@ -2,7 +2,7 @@
 
 package sync
 
-import "github.com/gopherjs/gopherjs/js"
+import "github.com/bpowers/browsix-gopherjs/js"
 
 var semWaiters = make(map[*uint32][]chan bool)
 

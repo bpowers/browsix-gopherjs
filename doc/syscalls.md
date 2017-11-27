@@ -21,7 +21,7 @@ GopherJS has support for system calls on OS X and Linux. Before running your cod
 
 Compile and install the module with:
 ```
-cd $GOPATH/src/github.com/gopherjs/gopherjs/node-syscall/
+cd $GOPATH/src/github.com/bpowers/browsix-gopherjs/node-syscall/
 npm install --global node-gyp
 node-gyp rebuild
 mkdir -p ~/.node_libraries/

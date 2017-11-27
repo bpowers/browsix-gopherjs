@@ -21,9 +21,9 @@ test:
     - gopherjs install -v net/http # Should build successfully (can't run tests, since only client is supported).
     - >
       ulimit -s 10000 && gopherjs test --minify -v --short
-      github.com/gopherjs/gopherjs/tests
-      github.com/gopherjs/gopherjs/tests/main
-      github.com/gopherjs/gopherjs/js
+      github.com/bpowers/browsix-gopherjs/tests
+      github.com/bpowers/browsix-gopherjs/tests/main
+      github.com/bpowers/browsix-gopherjs/js
       archive/tar
       archive/zip
       bufio

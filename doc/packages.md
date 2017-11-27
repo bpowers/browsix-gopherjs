@@ -149,7 +149,7 @@ text               |              |
 -- tabwriter       | ✅ yes       |
 -- template        | ✅ yes       |
 -- -- parse        | ✅ yes       |
-time               | ✅ yes       | UTC and Local only (see [issue](https://github.com/gopherjs/gopherjs/issues/64))
+time               | ✅ yes       | UTC and Local only (see [issue](https://github.com/bpowers/browsix-gopherjs/issues/64))
 unicode            | ✅ yes       |
 -- utf16           | ✅ yes       |
 -- utf8            | ✅ yes       |

@@ -5,7 +5,7 @@ package atomic
 import (
 	"unsafe"
 
-	"github.com/gopherjs/gopherjs/js"
+	"github.com/bpowers/browsix-gopherjs/js"
 )
 
 func SwapInt32(addr *int32, new int32) int32 {

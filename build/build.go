@@ -20,8 +20,8 @@ import (
 	"time"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/gopherjs/gopherjs/compiler"
-	"github.com/gopherjs/gopherjs/compiler/natives"
+	"github.com/bpowers/browsix-gopherjs/compiler"
+	"github.com/bpowers/browsix-gopherjs/compiler/natives"
 	"github.com/neelance/sourcemap"
 )
 
@@ -95,8 +95,8 @@ func importWithSrcDir(path string, srcDir string, mode build.ImportMode, install
 	}
 
 	// TODO: Resolve issue #415 and remove this temporary workaround.
-	if strings.HasSuffix(pkg.ImportPath, "/vendor/github.com/gopherjs/gopherjs/js") {
-		return nil, fmt.Errorf("vendoring github.com/gopherjs/gopherjs/js package is not supported, see https://github.com/gopherjs/gopherjs/issues/415")
+	if strings.HasSuffix(pkg.ImportPath, "/vendor/github.com/bpowers/browsix-gopherjs/js") {
+		return nil, fmt.Errorf("vendoring github.com/bpowers/browsix-gopherjs/js package is not supported, see https://github.com/bpowers/browsix-gopherjs/issues/415")
 	}
 
 	switch path {
@@ -329,7 +329,7 @@ func parseAndAugment(pkg *build.Package, isTest bool, fileSet *token.FileSet) ([
 					if spec.Name == nil {
 						spec.Name = ast.NewIdent("sync")
 					}
-					spec.Path.Value = `"github.com/gopherjs/gopherjs/nosync"`
+					spec.Path.Value = `"github.com/bpowers/browsix-gopherjs/nosync"`
 				}
 			}
 		}

@@ -1,7 +1,7 @@
 GopherJS - A compiler from Go to JavaScript
 -------------------------------------------
 
-[![Sourcegraph](https://sourcegraph.com/github.com/gopherjs/gopherjs/-/badge.svg)](https://sourcegraph.com/github.com/gopherjs/gopherjs?badge)
+[![Sourcegraph](https://sourcegraph.com/github.com/bpowers/browsix-gopherjs/-/badge.svg)](https://sourcegraph.com/github.com/bpowers/browsix-gopherjs?badge)
 [![Circle CI](https://circleci.com/gh/gopherjs/gopherjs.svg?style=svg)](https://circleci.com/gh/gopherjs/gopherjs)
 
 GopherJS compiles Go code ([golang.org](https://golang.org/)) to pure JavaScript code. Its main purpose is to give you the opportunity to write front-end code in Go which will still run in all browsers.
@@ -10,13 +10,13 @@ GopherJS compiles Go code ([golang.org](https://golang.org/)) to pure JavaScript
 Give GopherJS a try on the [GopherJS Playground](http://gopherjs.github.io/playground/).
 
 ### What is supported?
-Nearly everything, including Goroutines ([compatibility table](https://github.com/gopherjs/gopherjs/blob/master/doc/packages.md)). Performance is quite good in most cases, see [HTML5 game engine benchmark](https://ajhager.github.io/engi/demos/botmark.html). Cgo is not supported. Using a vendored copy of GopherJS is currently not supported, see [#415](https://github.com/gopherjs/gopherjs/issues/415).
+Nearly everything, including Goroutines ([compatibility table](https://github.com/bpowers/browsix-gopherjs/blob/master/doc/packages.md)). Performance is quite good in most cases, see [HTML5 game engine benchmark](https://ajhager.github.io/engi/demos/botmark.html). Cgo is not supported. Using a vendored copy of GopherJS is currently not supported, see [#415](https://github.com/bpowers/browsix-gopherjs/issues/415).
 
 ### Installation and Usage
 Get or update GopherJS and dependencies with:
 
 ```
-go get -u github.com/gopherjs/gopherjs
+go get -u github.com/bpowers/browsix-gopherjs
 ```
 
 Now you can use `gopherjs build [package]`, `gopherjs build [files]` or `gopherjs install [package]` which behave similar to the `go` tool. For `main` packages, these commands create a `.js` file and `.js.map` source map in the current directory or in `$GOPATH/bin`. The generated JavaScript file can be used as usual in a website. Use `gopherjs help [command]` to get a list of possible command line flags, e.g. for minification and automatically watching for changes.
@@ -31,7 +31,7 @@ If you want to use `gopherjs run` or `gopherjs test` to run the generated code l
 npm install --global source-map-support
 ```
 
-For system calls (file system access, etc.), see [this page](https://github.com/gopherjs/gopherjs/blob/master/doc/syscalls.md).
+For system calls (file system access, etc.), see [this page](https://github.com/bpowers/browsix-gopherjs/blob/master/doc/syscalls.md).
 
 #### gopherjs serve
 
@@ -52,14 +52,14 @@ If you include an argument, it will be the root from which everything is served.
 
 ### Community
 - [#gopherjs Channel on Gophers Slack](https://gophers.slack.com/messages/gopherjs/) (invites to Gophers Slack are available [here](http://blog.gopheracademy.com/gophers-slack-community/#how-can-i-be-invited-to-join:2facdc921b2310f18cb851c36fa92369))
-- [Bindings to JavaScript APIs and libraries](https://github.com/gopherjs/gopherjs/wiki/bindings)
+- [Bindings to JavaScript APIs and libraries](https://github.com/bpowers/browsix-gopherjs/wiki/bindings)
 - [GopherJS Blog](https://medium.com/gopherjs)
 - [GopherJS on Twitter](https://twitter.com/GopherJS)
 
 ### Getting started
 
 #### Interacting with the DOM
-The package `github.com/gopherjs/gopherjs/js` (see [documentation](https://godoc.org/github.com/gopherjs/gopherjs/js)) provides functions for interacting with native JavaScript APIs. For example the line
+The package `github.com/bpowers/browsix-gopherjs/js` (see [documentation](https://godoc.org/github.com/bpowers/browsix-gopherjs/js)) provides functions for interacting with native JavaScript APIs. For example the line
 
 ```js
 document.write("Hello world!");
@@ -71,7 +71,7 @@ would look like this in Go:
 js.Global.Get("document").Call("write", "Hello world!")
 ```
 
-You may also want use the [DOM bindings](http://dominik.honnef.co/go/js/dom), the [jQuery bindings](https://github.com/gopherjs/jquery) (see [TodoMVC Example](https://github.com/gopherjs/todomvc)) or the [AngularJS bindings](https://github.com/wvell/go-angularjs). Those are some of the [bindings to JavaScript APIs and libraries](https://github.com/gopherjs/gopherjs/wiki/bindings) by community members.
+You may also want use the [DOM bindings](http://dominik.honnef.co/go/js/dom), the [jQuery bindings](https://github.com/gopherjs/jquery) (see [TodoMVC Example](https://github.com/gopherjs/todomvc)) or the [AngularJS bindings](https://github.com/wvell/go-angularjs). Those are some of the [bindings to JavaScript APIs and libraries](https://github.com/bpowers/browsix-gopherjs/wiki/bindings) by community members.
 
 #### Providing library functions for use in other JavaScript code
 Set a global variable to a map that contains the functions:
@@ -79,7 +79,7 @@ Set a global variable to a map that contains the functions:
 ```go
 package main
 
-import "github.com/gopherjs/gopherjs/js"
+import "github.com/bpowers/browsix-gopherjs/js"
 
 func main() {
 	js.Global.Set("pet", map[string]interface{}{
@@ -137,4 +137,4 @@ JavaScript has no concept of concurrency (except web workers, but those are too 
 GopherJS does some heavy lifting to work around this restriction: Whenever an instruction is blocking (e.g. communicating with a channel that isn't ready), the whole stack will unwind (= all functions return) and the goroutine will be put to sleep. Then another goroutine which is ready to resume gets picked and its stack with all local variables will be restored.
 
 ### GopherJS Development
-If you're looking to make changes to the GopherJS compiler, see [Developer Guidelines](https://github.com/gopherjs/gopherjs/wiki/Developer-Guidelines) for additional developer information.
+If you're looking to make changes to the GopherJS compiler, see [Developer Guidelines](https://github.com/bpowers/browsix-gopherjs/wiki/Developer-Guidelines) for additional developer information.

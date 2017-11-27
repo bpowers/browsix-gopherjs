@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gopherjs/gopherjs/js"
+	"github.com/bpowers/browsix-gopherjs/js"
 )
 
 var dummys = js.Global.Call("eval", `({
@@ -291,7 +291,7 @@ func TestDate(t *testing.T) {
 	}
 }
 
-// https://github.com/gopherjs/gopherjs/issues/287
+// https://github.com/bpowers/browsix-gopherjs/issues/287
 func TestInternalizeDate(t *testing.T) {
 	var a = time.Unix(0, (123 * time.Millisecond).Nanoseconds())
 	var b time.Time

@@ -29,9 +29,9 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	gbuild "github.com/gopherjs/gopherjs/build"
-	"github.com/gopherjs/gopherjs/compiler"
-	"github.com/gopherjs/gopherjs/internal/sysutil"
+	gbuild "github.com/bpowers/browsix-gopherjs/build"
+	"github.com/bpowers/browsix-gopherjs/compiler"
+	"github.com/bpowers/browsix-gopherjs/internal/sysutil"
 	"github.com/kisielk/gotool"
 	"github.com/neelance/sourcemap"
 	"github.com/spf13/cobra"
@@ -739,7 +739,7 @@ func runNode(script string, args []string, dir string, quiet bool) error {
 		allArgs = []string{"--require", "source-map-support/register"}
 		if err := exec.Command("node", "--require", "source-map-support/register", "--eval", "").Run(); err != nil {
 			if !quiet {
-				fmt.Fprintln(os.Stderr, "gopherjs: Source maps disabled. Install source-map-support module for nice stack traces. See https://github.com/gopherjs/gopherjs#gopherjs-run-gopherjs-test.")
+				fmt.Fprintln(os.Stderr, "gopherjs: Source maps disabled. Install source-map-support module for nice stack traces. See https://github.com/bpowers/browsix-gopherjs#gopherjs-run-gopherjs-test.")
 			}
 			allArgs = []string{}
 		}
@@ -748,7 +748,7 @@ func runNode(script string, args []string, dir string, quiet bool) error {
 	if runtime.GOOS != "windows" {
 		// We've seen issues with stack space limits causing
 		// recursion-heavy standard library tests to fail (e.g., see
-		// https://github.com/gopherjs/gopherjs/pull/669#issuecomment-319319483).
+		// https://github.com/bpowers/browsix-gopherjs/pull/669#issuecomment-319319483).
 		//
 		// There are two separate limits in non-Windows environments:
 		//
