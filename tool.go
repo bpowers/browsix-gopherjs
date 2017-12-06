@@ -519,7 +519,7 @@ func main() {
 	}
 
 	rootCmd := &cobra.Command{
-		Use:  "gopherjs",
+		Use:  "browsix-gopherjs",
 		Long: "GopherJS is a tool for compiling Go source code to JavaScript.",
 	}
 	rootCmd.AddCommand(cmdBuild, cmdGet, cmdInstall, cmdRun, cmdTest, cmdServe, cmdVersion, cmdDoc)

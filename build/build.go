@@ -19,9 +19,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fsnotify/fsnotify"
 	"github.com/bpowers/browsix-gopherjs/compiler"
 	"github.com/bpowers/browsix-gopherjs/compiler/natives"
+	"github.com/fsnotify/fsnotify"
 	"github.com/neelance/sourcemap"
 )
 
@@ -89,6 +89,7 @@ func importWithSrcDir(path string, srcDir string, mode build.ImportMode, install
 		// These stdlib packages have cgo and non-cgo versions (via build tags); we want the latter.
 		bctx.CgoEnabled = false
 	}
+	fmt.Printf("!import %s\n", path)
 	pkg, err := bctx.Import(path, srcDir, mode)
 	if err != nil {
 		return nil, err

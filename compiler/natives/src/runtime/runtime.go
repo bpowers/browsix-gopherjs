@@ -10,7 +10,7 @@ import (
 
 const GOOS = sys.GOOS
 const GOARCH = "js"
-const Compiler = "gopherjs"
+const Compiler = "browsix-gopherjs"
 
 // fake for error.go
 type eface struct {

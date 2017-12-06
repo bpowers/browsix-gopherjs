@@ -8,6 +8,7 @@ import (
 	"go/constant"
 	"go/token"
 	"go/types"
+	"runtime/debug"
 	"sort"
 	"strings"
 
@@ -106,6 +107,8 @@ func (pi packageImporter) Import(path string) (*types.Package, error) {
 		return types.Unsafe, nil
 	}
 
+	fmt.Printf("-pi.Import %s\n%s\n", path, string(debug.Stack()))
+
 	a, err := pi.importContext.Import(path)
 	if err != nil {
 		if *pi.importError == nil {
@@ -145,6 +148,7 @@ func Compile(importPath string, files []*ast.File, fileSet *token.FileSet, impor
 			previousErr = err
 		},
 	}
+	fmt.Printf("importPath:: %s\n", importPath)
 	typesPkg, err := config.Check(importPath, fileSet, files, typesInfo)
 	if importError != nil {
 		return nil, importError

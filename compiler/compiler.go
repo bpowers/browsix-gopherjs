@@ -83,9 +83,12 @@ func ImportDependencies(archive *Archive, importPkg func(string) (*Archive, erro
 		return nil
 	}
 
+	fmt.Printf("COLLECTING RT\n")
 	if err := collectDependencies("runtime"); err != nil {
+		fmt.Printf("ERROR RT\n")
 		return nil, err
 	}
+	fmt.Printf("OK RT\n")
 	for _, imp := range archive.Imports {
 		if err := collectDependencies(imp); err != nil {
 			return nil, err
